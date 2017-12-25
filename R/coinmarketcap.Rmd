@@ -10,6 +10,33 @@ knitr::opts_chunk$set(echo = TRUE)
 ## 
 ```{r currency historical data function}
 
+# List all coins
+get_list_of_all_coinmarketcap_coins <- function() {
+    url = 'https://coinmarketcap.com/all/views/all/'
+    url_parsed <- htmlParse(getURL(url), asText = TRUE)
+    tableNodes <- getNodeSet(url_parsed, c('//*[@id="currencies-all"]'))
+    all_currency <- readHTMLTable(tableNodes[[1]])
+    
+    currencies <- gsub("\n","", all_currency$Name)
+    
+    library(stringr)
+    currencies <- str_replace(gsub("\\s+", " ", str_trim(currencies)), "B", "b")
+    
+    c_symbols <- c()
+    c_names <- c()
+    
+    for(c in currencies) {
+        cr <- strsplit(c, " ")
+        c_symbols <- c(c_symbols, cr[[1]][1])
+        c_names <- c(c_names, cr[[1]][1])
+    }
+    
+    cr_df <- cbind(c_names, c_symbols)
+    colnames(cr_df) <- c('Name', 'Symbol')
+    
+    return(as.data.frame(cr_df))
+}
+
 # Function to create url from start to end
 get_currency_data_download_url <- function(currency, history_start, history_end) {
   # Processing URL to download data
@@ -28,7 +55,9 @@ get_currency_data_download_url <- function(currency, history_start, history_end)
   url <- url_e
 }  
 
+library(RCurl)
 library(XML)
+library(bitops)
 get_currency_historical_data <- function(url) {
   url_parsed <- htmlParse(getURL(url), asText = TRUE)
   tableNodes <- getNodeSet(url_parsed, c('//*[@class="table"]'))
@@ -40,7 +69,7 @@ get_currency_historical_data <- function(url) {
 ```
 
 
-```{r Historical Data from CoinMarketCap}
+```{r Bitcoin Historical Data from CoinMarketCap}
 currency <- 'bitcoin'
 history_start <- '20090101'
 history_end <- '20171224'
@@ -88,6 +117,43 @@ points(date, price_close, col='blue', cex=0.05)
 ```
 
 
+```{r Historical Data from CoinMarketCap}
+currency <- 'zcoin'
+history_start <- '20090101'
+history_end <- '20171224'
+
+url <- get_currency_data_download_url(currency, history_start, history_end)
+
+data <- get_currency_historical_data(url)
+
+# Get the data
+date <- as.Date(rev(data$Date), "%B %d, %Y")
+price_high <- as.numeric(as.character(rev(data$High)))
+price_low <- as.numeric(as.character(rev(data$Low)))
+price_open <- as.numeric(as.character(rev(data$Open)))
+price_close <- as.numeric(as.character(rev(data$Close)))
+vol <- as.numeric(gsub(",", "", as.character(rev(data$Volume))))
+vol[is.na(vol)] <- 0
+mc <- as.numeric(gsub(",", "", as.character(rev(data$`Market Cap`))))
+mc[is.na(mc)] <- 0
+
+
+# plotting
+library(plotly)
+library(quantmod)
+plot_title <- paste(currency, "Historical Price", sep=" ")
+
+data$Date <- rev(date)
+p <- data %>%
+  plot_ly(x = ~Date, type="ohlc",
+          open = ~Open, close = ~Close,
+          high = ~High, low = ~Low) %>%
+  layout(title = plot_title)
+
+p
+
+
+```
 
 ## Including Plots
 
