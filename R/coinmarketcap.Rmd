@@ -1,0 +1,100 @@
+---
+title: "BitcoinPrice"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 
+```{r currency historical data function}
+
+# Function to create url from start to end
+get_currency_data_download_url <- function(currency, history_start, history_end) {
+  # Processing URL to download data
+  url_cmarket <- 'https://coinmarketcap.com/'
+  currency_part <- paste('currencies/', currency, sep="") 
+  url_pre <- paste(url_cmarket, currency_part, sep="")
+
+  # Append start date
+  url_s <- paste(url_pre, '/historical-data/?start=', sep="")
+  url_s <- paste(url_s, history_start, sep="") 
+
+  # Append end date
+  url_e <- paste(url_s, '&end=', sep="")
+  url_e <- paste(url_e, history_end, sep="") 
+
+  url <- url_e
+}  
+
+library(XML)
+get_currency_historical_data <- function(url) {
+  url_parsed <- htmlParse(getURL(url), asText = TRUE)
+  tableNodes <- getNodeSet(url_parsed, c('//*[@class="table"]'))
+  
+  currency_historical_data <- readHTMLTable(tableNodes[[1]])
+  
+  return(currency_historical_data)
+}                                         
+```
+
+
+```{r Historical Data from CoinMarketCap}
+currency <- 'bitcoin'
+history_start <- '20090101'
+history_end <- '20171224'
+
+url <- get_currency_data_download_url(currency, history_start, history_end)
+
+data <- get_currency_historical_data(url)
+
+# Get the data
+date <- as.Date(rev(data$Date), "%B %d, %Y")
+price_high <- as.numeric(as.character(rev(data$High)))
+price_low <- as.numeric(as.character(rev(data$Low)))
+price_open <- as.numeric(as.character(rev(data$Open)))
+price_close <- as.numeric(as.character(rev(data$Close)))
+vol <- as.numeric(gsub(",", "", as.character(rev(data$Volume))))
+vol[is.na(vol)] <- 0
+mc <- as.numeric(gsub(",", "", as.character(rev(data$`Market Cap`))))
+mc[is.na(mc)] <- 0
+
+
+# plotting
+library(plotly)
+library(quantmod)
+
+data$Date <- rev(date)
+p <- data %>%
+  plot_ly(x = ~Date, type="ohlc",
+          open = ~Open, close = ~Close,
+          high = ~High, low = ~Low) %>%
+  layout(title = "Bitcoin Historical Price")
+
+p
+
+
+plot(date, price_high, cex=0.05)
+lines(date, price_high)
+lines(date, price_low, col='green')
+points(date, price_low, col='green', cex=0.05)
+lines(date, price_open, col='red')
+points(date, price_open, col='red', cex=0.05)
+lines(date, price_close, col='blue')
+points(date, price_close, col='blue', cex=0.05)
+
+
+```
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
