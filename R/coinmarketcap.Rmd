@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 
 ```{r currency historical data function}
+library(stringr)
 
 # List all coins
 get_list_of_all_coinmarketcap_coins <- function() {
@@ -19,7 +20,6 @@ get_list_of_all_coinmarketcap_coins <- function() {
     
     currencies <- gsub("\n","", all_currency$Name)
     
-    library(stringr)
     currencies <- str_replace(gsub("\\s+", " ", str_trim(currencies)), "B", "b")
     
     c_symbols <- c()
@@ -77,6 +77,7 @@ history_end <- '20171224'
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
 data <- get_currency_historical_data(url)
+btc_data <- data
 
 # Get the data
 date <- as.Date(rev(data$Date), "%B %d, %Y")
@@ -116,15 +117,15 @@ points(date, price_close, col='blue', cex=0.05)
 
 ```
 
-
 ```{r Historical Data from CoinMarketCap}
-currency <- 'zcoin'
+currency <- 'ethereum'
 history_start <- '20090101'
 history_end <- '20171224'
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
 data <- get_currency_historical_data(url)
+eth_data <- data
 
 # Get the data
 date <- as.Date(rev(data$Date), "%B %d, %Y")
@@ -152,6 +153,270 @@ p <- data %>%
 
 p
 
+``` 
+
+```{r Historical Data from CoinMarketCap}
+currency <- 'zcoin'
+history_start <- '20090101'
+history_end <- '20171224'
+
+url <- get_currency_data_download_url(currency, history_start, history_end)
+
+data <- get_currency_historical_data(url)
+zcoin_data <- data
+
+# Get the data
+date <- as.Date(rev(data$Date), "%B %d, %Y")
+price_high <- as.numeric(as.character(rev(data$High)))
+price_low <- as.numeric(as.character(rev(data$Low)))
+price_open <- as.numeric(as.character(rev(data$Open)))
+price_close <- as.numeric(as.character(rev(data$Close)))
+vol <- as.numeric(gsub(",", "", as.character(rev(data$Volume))))
+vol[is.na(vol)] <- 0
+mc <- as.numeric(gsub(",", "", as.character(rev(data$`Market Cap`))))
+mc[is.na(mc)] <- 0
+
+
+# plotting
+library(plotly)
+library(quantmod)
+plot_title <- paste(currency, "Historical Price", sep=" ")
+
+data$Date <- rev(date)
+p <- data %>%
+  plot_ly(x = ~Date, type="ohlc",
+          open = ~Open, close = ~Close,
+          high = ~High, low = ~Low) %>%
+  layout(title = plot_title)
+
+p
+
+``` 
+
+```{r}
+library(plotly)
+
+cur1_dat <- btc_data
+cur2_dat <- eth_data
+cur1_dat$Name <- 'BTC'
+cur2_dat$Name <- 'ETH'
+
+cur1_p_date <- as.Date(cur1_dat$Date, "%B %d, %Y")
+cur2_p_date <- as.Date(cur2_dat$Date, "%B %d, %Y")
+
+# Find the lowest timestamp to start
+min_cur1_date <- min(cur1_p_date)
+min_cur2_date <- min(cur2_p_date)
+min_date <- max(min_cur1_date, min_cur2_date)
+
+# Find the latest timestamp to end
+max_cur1_date <- max(cur1_p_date)
+max_cur2_date <- max(cur2_p_date)
+max_date <- min(max_cur1_date, max_cur2_date)
+
+cur1_s_id <- which(cur1_p_date == min_date)
+cur1_e_ed <- which(cur1_p_date == max_date)
+
+cur2_s_id <- which(cur2_p_date == min_date)
+cur2_e_ed <- which(cur2_p_date == max_date)
+
+# Create date sequence for x axis
+x <- cur1_p_date[cur1_s_id:(cur1_e_ed + 1)]
+n <- length(x) + 1
+date <- as.character.Date(x)
+y1_dat <- as.numeric(as.character(cur1_dat$Close[cur1_s_id:(cur1_e_ed + 1)]))
+y2_dat <- as.numeric(as.character(cur2_dat$Close[cur2_s_id:(cur2_e_ed + 1)]))
+
+trace1 <- list(
+  x = c(date),
+  y = c(y1_dat),
+  line = list(color = "rgb(221, 42, 145)"), 
+  marker = list(
+    color = "rgb(0, 0, 155)", 
+    size = 2
+  ), 
+  mode = "lines+markers", 
+  name = cur1_dat$Name, 
+  opacity = 1, 
+  type = "scatter", 
+  uid = "e27bd3", 
+  xaxis = "x", 
+  yaxis = "y" 
+)
+trace2 <- list(
+  x = c(date),
+  y = c(y2_dat), 
+  line = list(color = "rgb(36, 32, 29)"), 
+  marker = list(
+    color = "rgb(228, 103, 9)", 
+    size = 5
+  ), 
+  mode = "lines+markers", 
+  name = cur2_dat$Name, 
+  type = "scatter", 
+  uid = "efd000", 
+  yaxis = "y2" 
+)
+
+data <- list(trace1, trace2)
+
+layout <- list(
+  autosize = TRUE, 
+  hovermode = "closest", 
+  showlegend = TRUE, 
+  xaxis = list(
+    autorange = TRUE, 
+    #range = c(-0.745097129104, 11.4882190132), 
+    title = "", 
+    type = "date",
+    showgrid = FALSE
+  ), 
+  yaxis = list(
+    autorange = TRUE, 
+    #domain = c(0, 1), 
+    #range = c(-50, -20), 
+    title = "USD", 
+    type = "linear",
+    showgrid = FALSE
+  ), 
+  yaxis2 = list(
+    anchor = "x", 
+    autorange = TRUE, 
+    overlaying = "y", 
+    #range = c(-25.3091876767, 55.9930010303), 
+    title = "USD", 
+    side = "right", 
+    type = "linear",
+    showgrid = FALSE,
+    showline = TRUE
+  )
+)
+
+
+p <- plot_ly()
+p <- add_trace(p, 
+               x=trace1$x, 
+               y=trace1$y, 
+               line=trace1$line, 
+               marker=trace1$marker, 
+               mode=trace1$mode, 
+               name=trace1$name, 
+               opacity=trace1$opacity, 
+               type=trace1$type, 
+               uid=trace1$uid, 
+               xaxis=trace1$xaxis, 
+               yaxis=trace1$yaxis, 
+               visible = TRUE 
+               )
+p <- add_trace(p, 
+               x=trace2$x, 
+               y=trace2$y, 
+               line=trace2$line, 
+               marker=trace2$marker, 
+               mode=trace2$mode, 
+               name=trace2$name, 
+               type=trace2$type, 
+               uid=trace2$uid, 
+               yaxis=trace2$yaxis, 
+               visible = TRUE
+               )
+p <- add_trace(p, 
+               x=trace2$x, 
+               y=trace2$y, 
+               line=trace2$line, 
+               marker=trace2$marker, 
+               mode=trace2$mode, 
+               name=trace2$name, 
+               type=trace2$type, 
+               uid=trace2$uid, 
+               yaxis=trace2$yaxis, 
+               visible = FALSE
+               )
+p <- add_trace(p, 
+               x=trace1$x, 
+               y=trace1$y, 
+               line=trace1$line, 
+               marker=trace1$marker, 
+               mode=trace1$mode, 
+               name=trace1$name, 
+               opacity=trace1$opacity, 
+               type=trace1$type, 
+               uid=trace1$uid, 
+               xaxis=trace1$xaxis, 
+               yaxis=trace1$yaxis, 
+               visible = FALSE 
+               )
+p <- layout(p, 
+            autosize=layout$autosize, 
+            hovermode=layout$hovermode, 
+            #showlegend=layout$showlegend, 
+            xaxis=layout$xaxis, 
+            yaxis=layout$yaxis, 
+            yaxis2=layout$yaxis2,
+            updatemenus = list(
+   list(
+      x = -0.15,
+      y = 0.7,
+      buttons = list(
+        list(method = "update",
+             args = list("visible", list(TRUE, TRUE, FALSE, FALSE)),
+             label = "BTC"),
+ 
+        list(method = "update",
+             args = list("visible", list(FALSE, FALSE, TRUE, TRUE)),
+             label = "ETH"))),
+    list(
+      x = -0.15,
+      y = 0.8,
+      buttons = list(
+        list(method = "update",
+             args = list("visible", list(TRUE, TRUE, FALSE, FALSE)),
+             label = "ETH"),
+ 
+        list(method = "update",
+             args = list("visible", list(FALSE, FALSE, TRUE, TRUE)),
+             label = "BTC")))
+  ))
+
+p
+
+#https://plot.ly/python/custom-buttons/  follow to finalize
+
+```
+
+```{r}
+p <- layout(p,
+  title = "Coin Price Comparison",
+  autosize=layout$autosize, 
+  hovermode=layout$hovermode, 
+  showlegend=layout$showlegend, 
+  xaxis=layout$xaxis, 
+  yaxis=layout$yaxis, 
+  yaxis2=layout$yaxis2,
+  updatemenus = list(
+   list(
+      y = 0.7,
+      buttons = list(
+        list(method = "restyle",
+             args = list("yaxis", list(layout$yaxis, layout$yaxis2)),
+             label = "BTC"),
+ 
+        list(method = "restyle",
+             args = list("yaxis", list(layout$yaxis2, layout$yaxis)),
+             label = "ETH"))),
+    list(
+      y = 0.7,
+      buttons = list(
+        list(method = "restyle",
+             args = list("yaxis2", list(layout$yaxis2, layout$yaxis)),
+             label = "ETH"),
+ 
+        list(method = "restyle",
+             args = list("yaxis2", list(layout$yaxis, layout$yaxis2)),
+             label = "BTC")))
+  ))
+ 
+p
 
 ```
 
