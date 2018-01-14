@@ -1,6 +1,8 @@
 ---
 title: "BitcoinPrice"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -72,7 +74,7 @@ get_currency_historical_data <- function(url) {
 ```{r Bitcoin Historical Data from CoinMarketCap}
 currency <- 'bitcoin'
 history_start <- '20090101'
-history_end <- '20171224'
+history_end <- '20180130'
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
@@ -117,10 +119,10 @@ points(date, price_close, col='blue', cex=0.05)
 
 ```
 
-```{r Historical Data from CoinMarketCap}
+```{r Historical Data from CoinMarketCap 1}
 currency <- 'ethereum'
 history_start <- '20090101'
-history_end <- '20171224'
+history_end <- '20180130'
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
@@ -155,10 +157,10 @@ p
 
 ``` 
 
-```{r Historical Data from CoinMarketCap}
+```{r Historical Data from CoinMarketCap 2 }
 currency <- 'zcoin'
 history_start <- '20090101'
-history_end <- '20171224'
+history_end <- '20180130'
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
@@ -224,77 +226,80 @@ cur2_e_ed <- which(cur2_p_date == max_date)
 x <- cur1_p_date[cur1_s_id:(cur1_e_ed + 1)]
 n <- length(x) + 1
 date <- as.character.Date(x)
+dat1 <- cur1_dat[cur1_s_id:(cur1_e_ed + 1),]
+dat2 <- cur2_dat[cur2_s_id:(cur2_e_ed + 1),]
 y1_dat <- as.numeric(as.character(cur1_dat$Close[cur1_s_id:(cur1_e_ed + 1)]))
 y2_dat <- as.numeric(as.character(cur2_dat$Close[cur2_s_id:(cur2_e_ed + 1)]))
 
-trace1 <- list(
-  x = c(date),
-  y = c(y1_dat),
-  line = list(color = "rgb(221, 42, 145)"), 
-  marker = list(
-    color = "rgb(0, 0, 155)", 
-    size = 2
-  ), 
-  mode = "lines+markers", 
-  name = cur1_dat$Name, 
-  opacity = 1, 
-  type = "scatter", 
-  uid = "e27bd3", 
-  xaxis = "x", 
-  yaxis = "y" 
-)
-trace2 <- list(
-  x = c(date),
-  y = c(y2_dat), 
-  line = list(color = "rgb(36, 32, 29)"), 
-  marker = list(
-    color = "rgb(228, 103, 9)", 
-    size = 5
-  ), 
-  mode = "lines+markers", 
-  name = cur2_dat$Name, 
-  type = "scatter", 
-  uid = "efd000", 
-  yaxis = "y2" 
-)
-
-data <- list(trace1, trace2)
-
-layout <- list(
-  autosize = TRUE, 
-  hovermode = "closest", 
-  showlegend = TRUE, 
-  xaxis = list(
-    autorange = TRUE, 
-    #range = c(-0.745097129104, 11.4882190132), 
-    title = "", 
-    type = "date",
-    showgrid = FALSE
-  ), 
-  yaxis = list(
-    autorange = TRUE, 
-    #domain = c(0, 1), 
-    #range = c(-50, -20), 
-    title = "USD", 
-    type = "linear",
-    showgrid = FALSE
-  ), 
-  yaxis2 = list(
-    anchor = "x", 
-    autorange = TRUE, 
-    overlaying = "y", 
-    #range = c(-25.3091876767, 55.9930010303), 
-    title = "USD", 
-    side = "right", 
-    type = "linear",
-    showgrid = FALSE,
-    showline = TRUE
+createDualAxisPlot <- function(date, y1_dat, y2_dat) {
+  trace1 <- list(
+    x = c(date),
+    y = c(y1_dat),
+    line = list(color = "rgb(221, 42, 145)"), 
+    marker = list(
+      color = "rgb(0, 0, 155)", 
+      size = 2
+    ), 
+    mode = "lines+markers", 
+    name = cur1_dat$Name, 
+    opacity = 1, 
+    type = "scatter", 
+    uid = "e27bd3", 
+    xaxis = "x", 
+    yaxis = "y" 
   )
-)
+  trace2 <- list(
+    x = c(date),
+    y = c(y2_dat), 
+    line = list(color = "rgb(36, 32, 29)"), 
+    marker = list(
+      color = "rgb(228, 103, 9)", 
+      size = 5
+    ), 
+    mode = "lines+markers", 
+    name = cur2_dat$Name, 
+    type = "scatter", 
+    uid = "efd000", 
+    yaxis = "y2" 
+  )
+  
+  data <- list(trace1, trace2)
+
+  layout <- list(
+    autosize = TRUE, 
+    hovermode = "closest", 
+    showlegend = TRUE, 
+    xaxis = list(
+      autorange = TRUE, 
+      #range = c(-0.745097129104, 11.4882190132), 
+      title = "", 
+      type = "date",
+      showgrid = FALSE
+    ), 
+    yaxis = list(
+      autorange = TRUE, 
+      #domain = c(0, 1), 
+      #range = c(-50, -20), 
+      title = "USD", 
+      type = "linear",
+      showgrid = FALSE
+    ), 
+    yaxis2 = list(
+      anchor = "x", 
+      autorange = TRUE, 
+      overlaying = "y", 
+      #range = c(-25.3091876767, 55.9930010303), 
+      title = "USD", 
+      side = "right", 
+      type = "linear",
+      showgrid = FALSE,
+      showline = TRUE
+    )
+  )
 
 
-p <- plot_ly()
-p <- add_trace(p, 
+  p <- plot_ly()
+  p <- add_trace(p, 
                x=trace1$x, 
                y=trace1$y, 
                line=trace1$line, 
@@ -308,7 +313,7 @@ p <- add_trace(p,
                yaxis=trace1$yaxis, 
                visible = TRUE 
                )
-p <- add_trace(p, 
+  p <- add_trace(p, 
                x=trace2$x, 
                y=trace2$y, 
                line=trace2$line, 
@@ -320,64 +325,19 @@ p <- add_trace(p,
                yaxis=trace2$yaxis, 
                visible = TRUE
                )
-p <- add_trace(p, 
-               x=trace2$x, 
-               y=trace2$y, 
-               line=trace2$line, 
-               marker=trace2$marker, 
-               mode=trace2$mode, 
-               name=trace2$name, 
-               type=trace2$type, 
-               uid=trace2$uid, 
-               yaxis=trace2$yaxis, 
-               visible = FALSE
-               )
-p <- add_trace(p, 
-               x=trace1$x, 
-               y=trace1$y, 
-               line=trace1$line, 
-               marker=trace1$marker, 
-               mode=trace1$mode, 
-               name=trace1$name, 
-               opacity=trace1$opacity, 
-               type=trace1$type, 
-               uid=trace1$uid, 
-               xaxis=trace1$xaxis, 
-               yaxis=trace1$yaxis, 
-               visible = FALSE 
-               )
-p <- layout(p, 
+  p <- layout(p, 
             autosize=layout$autosize, 
             hovermode=layout$hovermode, 
             #showlegend=layout$showlegend, 
             xaxis=layout$xaxis, 
             yaxis=layout$yaxis, 
-            yaxis2=layout$yaxis2,
-            updatemenus = list(
-   list(
-      x = -0.15,
-      y = 0.7,
-      buttons = list(
-        list(method = "update",
-             args = list("visible", list(TRUE, TRUE, FALSE, FALSE)),
-             label = "BTC"),
- 
-        list(method = "update",
-             args = list("visible", list(FALSE, FALSE, TRUE, TRUE)),
-             label = "ETH"))),
-    list(
-      x = -0.15,
-      y = 0.8,
-      buttons = list(
-        list(method = "update",
-             args = list("visible", list(TRUE, TRUE, FALSE, FALSE)),
-             label = "ETH"),
- 
-        list(method = "update",
-             args = list("visible", list(FALSE, FALSE, TRUE, TRUE)),
-             label = "BTC")))
-  ))
+            yaxis2=layout$yaxis2
+  )
 
+  return(p)
+}
+
+p <- createDualAxisPlot(date, y1_dat, y2_dat)
 p
 
 #https://plot.ly/python/custom-buttons/  follow to finalize
@@ -385,38 +345,249 @@ p
 ```
 
 ```{r}
-p <- layout(p,
-  title = "Coin Price Comparison",
-  autosize=layout$autosize, 
-  hovermode=layout$hovermode, 
-  showlegend=layout$showlegend, 
-  xaxis=layout$xaxis, 
-  yaxis=layout$yaxis, 
-  yaxis2=layout$yaxis2,
-  updatemenus = list(
-   list(
-      y = 0.7,
-      buttons = list(
-        list(method = "restyle",
-             args = list("yaxis", list(layout$yaxis, layout$yaxis2)),
-             label = "BTC"),
- 
-        list(method = "restyle",
-             args = list("yaxis", list(layout$yaxis2, layout$yaxis)),
-             label = "ETH"))),
-    list(
-      y = 0.7,
-      buttons = list(
-        list(method = "restyle",
-             args = list("yaxis2", list(layout$yaxis2, layout$yaxis)),
-             label = "ETH"),
- 
-        list(method = "restyle",
-             args = list("yaxis2", list(layout$yaxis, layout$yaxis2)),
-             label = "BTC")))
-  ))
- 
-p
+library(shiny)
+library(mlbench)
+library(plotly)
+library(shinythemes)
+library(dplyr)
+
+# Store features and actual class in seprate variables
+featureList <- colnames(dat1)
+class <- data$Name
+
+# ui.R definition
+ui <- fluidPage(
+  # Set theme
+  theme = shinytheme("spacelab"),
+
+  # Feature selection
+  fixedRow(
+    column(6, selectInput(inputId = "featureInput1", label = "Select first coin", choices = featureList, selected = "Low")),
+    column(6, selectInput(inputId = "featureInput2", label = "Select second coin", choices = featureList, selected = "Low"))),
+
+  # First row
+  fixedRow(
+    column(12, plotlyOutput("Plot1", height = "600px")))
+)
+
+
+# server
+server <- function(input, output){
+
+  # Observes the second feature input for a change
+  observeEvent(input$featureInput2,{
+
+    # Create a convenience data.frame which can be used for charting
+    date <- as.Date(as.character(dat1$Date) , "%b %d, %Y")
+    f1 <- input$featureInput1
+    y1_dat <- as.numeric(as.character(dat1[,f1]))
+    f2 <- input$featureInput2
+    y2_dat <- as.numeric(as.character(dat2[,f2]))
+    
+    ay <- list(
+      #tickfont = list(color = "red"),
+      overlaying = "y",
+      side = "right"
+    )
+
+#    p <- plot_ly() %>%
+#      add_trace(x = date, y = y1_dat, name = "BTC", type='scatter', mode='lines+markers') %>%
+#      add_trace(x = date, y = y2_dat, name = "ETH", yaxis = "y2", type='scatter', mode='lines+markers') %>%
+#      layout(
+#        title = "Coin comparison", yaxis2 = ay,
+#        xaxis = list(title="Date")
+#      )
+    
+    p <- createDualAxisPlot(date, y1_dat, y2_dat)
+    
+    output$Plot1 <- renderPlotly({p})
+ })
+}
+
+shinyApp(ui, server)
+
+
+```
+
+```{r coupled events}
+library(shiny)
+library(mlbench)
+library(plotly)
+library(shinythemes)
+library(dplyr)
+
+# Load data
+data(BreastCancer)
+
+# Remove NAs
+BreastCancer <- na.omit(BreastCancer)
+
+# Remvove ID
+BreastCancer <- BreastCancer[,-1]
+
+# Store features and actual class in seprate variables
+featureList <- colnames(BreastCancer)[-10]
+class <- BreastCancer$Class
+
+# Convert to numeric
+BreastCancer[,1:9] <- apply(BreastCancer[,-10], 2, as.numeric)
+
+# ui.R definition
+ui <- fluidPage(
+  # Set theme
+  theme = shinytheme("spacelab"),
+
+  # Some help text
+  h2("Coupled events in plotly charts using Shiny"),
+  h4("This Shiny app showcases coupled events using Plotly's ", tags$code("event_data()"), " function."),
+  tags$ol(
+    tags$li("The first chart showcases", tags$code("plotly_selected")),
+    tags$li("The third chart showcases", tags$code("plotly_click"))
+  ),
+
+  # Vertical space
+  tags$hr(),
+
+  # Feature selection
+  fixedRow(
+    column(6, selectInput(inputId = "featureInput1", label = "Select first feature", choices = featureList, selected = "Cell.Size")),
+    column(6, selectInput(inputId = "featureInput2", label = "Select second feature (observed event)", choices = featureList, selected = "Epith.c.size"))),
+
+  # First row
+  fixedRow(
+    column(6, plotlyOutput("Plot1", height = "600px")),
+    column(6, plotlyOutput("Plot2", height = "600px"))),
+
+  tags$hr(),
+  tags$blockquote("First drag a selection box in the scatter plot to populate the barchart. Then select one of the bars in the barchat
+    to populate the boxplot"),
+
+
+  # Second row
+  fixedRow(
+    column(3, plotlyOutput("Plot3", height = "600px")),
+    column(9, plotlyOutput("Plot4", height = "600px"))))
+
+# server.R definition
+server <- function(input, output){
+
+  # Observes the second feature input for a change
+  observeEvent(input$featureInput2,{
+
+    # Create a convenience data.frame which can be used for charting
+    plot.df <- data.frame(BreastCancer[,input$featureInput1],
+                          BreastCancer[,input$featureInput2],
+                          Class = BreastCancer$Class)
+
+    # Add column names
+    colnames(plot.df) <- c("x", "y", "Class")
+
+    # Do a plotly contour plot to visualize the two featres with
+    # the number of malignant cases as size
+    # Note the use of 'source' argument
+    output$Plot1 <- renderPlotly({
+      plot_ly(plot.df, x = ~x, y = ~y, mode = "markers", type = "scatter", color = ~Class, source = "subset",
+              marker = list(size = 30)) %>%
+        layout(title = paste(input$featureInput1, "vs ", input$featureInput2),
+               xaxis = list(title = input$featureInput1),
+               yaxis = list(title = input$featureInput2),
+               dragmode =  "select",
+               plot_bgcolor = "6A446F")
+    })
+
+    # Create a contour plot of the number of malignant cases
+    output$Plot2 <- renderPlotly({
+
+      plot.df %>%
+        group_by(x, y, Class) %>%
+        summarize(Count = n()) %>%
+        filter(Class == "malignant") %>%
+        plot_ly(x = ~x, y = ~y, z = ~Count, type = "contour") %>%
+        layout(title = "Contour map of number of malignant cases",
+               xaxis = list(title = input$featureInput1),
+               yaxis = list(title = input$featureInput2))
+
+    })
+
+    # Assign to parent environment
+    plot.df <<- plot.df
+  })
+
+  # Coupled event 1
+  output$Plot3 <- renderPlotly({
+
+    # Get subset based on selection
+    event.data <- event_data("plotly_selected", source = "subset")
+
+    # If NULL dont do anything
+    if(is.null(event.data) == T) return(NULL)
+
+    # Get number of malignant and benign cases from selection
+    malig.class <- subset(plot.df, Class == "malignant")[subset(event.data, curveNumber == 0)$pointNumber + 1,]
+    benign.class <- subset(plot.df, Class == "benign")[subset(event.data, curveNumber == 1)$pointNumber + 1,]
+
+    # Combine
+    plot.subset <- rbind(malig.class, benign.class)
+
+    # Summarize
+    plot.summ <- plot.subset %>%
+      group_by(x, y, Class) %>%
+      summarize(Count = n())
+
+    # Assign to parent frame
+    plot.summ <<- plot.summ
+
+    # Plot
+    plot_ly(plot.summ, x = ~Class, y = ~Count, type = "bar", source = "select", color = ~Class) %>%
+      layout(title = "No. of Malignant and Benign cases <br> in Selection",
+             plot_bgcolor = "6A446F",
+             yaxis = list(domain = c(0, 0.9)))
+  })
+
+  # Coupled event 2
+  output$Plot4 <- renderPlotly({
+
+    # Get subset based on selection
+    event.data <- event_data("plotly_click", source = "select")
+
+    # If NULL dont do anything
+    if(is.null(event.data) == T) return(NULL)
+
+    # If Malignant
+    if(event.data[3] == "malignant"){
+
+      tab <- subset(plot.summ, Class == "malignant")
+
+      p1 <- plot_ly(tab, x = x, y = Count, type = "box", showlegend = F) %>%
+        layout(yaxis = list(title = "Count"),
+               xaxis = list(title = input$featureInput1))
+
+      p2 <- plot_ly(tab, x = y, y = Count, type = "box", showlegend = F) %>%
+        layout(title = "Box plot for Malignant cases",
+               yaxis = list(title = "Count"),
+               xaxis = list(title = input$featureInput2))
+
+      subplot(p1, p2)
+    }else{
+      tab <- subset(plot.summ, Class == "benign")
+
+      p1 <- plot_ly(tab, x = ~x, y = ~Count, type = "box", showlegend = F) %>%
+        layout(yaxis = list(title = "Count"),
+               xaxis = list(title = input$featureInput1))
+
+      p2 <- plot_ly(tab, x = ~y, y = ~Count, type = "box", showlegend = F) %>%
+        layout(title = "Box plot for Benign cases",
+               yaxis = list(title = "Count"),
+               xaxis = list(title = input$featureInput2))
+
+      subplot(p1, p2)
+    }
+
+  })
+
+}
+
+shinyApp(ui, server)
 
 ```
 
