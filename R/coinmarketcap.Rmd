@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## 
 ```{r currency historical data function}
 library(stringr)
-
+library(XML)
 # List all coins
 get_list_of_all_coinmarketcap_coins <- function() {
     url = 'https://coinmarketcap.com/all/views/all/'
@@ -30,7 +30,7 @@ get_list_of_all_coinmarketcap_coins <- function() {
     for(c in currencies) {
         cr <- strsplit(c, " ")
         c_symbols <- c(c_symbols, cr[[1]][1])
-        c_names <- c(c_names, cr[[1]][1])
+        c_names <- c(c_names, cr[[1]][2])
     }
     
     cr_df <- cbind(c_names, c_symbols)
@@ -59,10 +59,11 @@ get_currency_data_download_url <- function(currency, history_start, history_end)
 
 library(RCurl)
 library(XML)
-library(bitops)
 get_currency_historical_data <- function(url) {
   url_parsed <- htmlParse(getURL(url), asText = TRUE)
+  print(url_parsed)
   tableNodes <- getNodeSet(url_parsed, c('//*[@class="table"]'))
+  print(tableNodes)
   
   currency_historical_data <- readHTMLTable(tableNodes[[1]])
   
@@ -74,7 +75,7 @@ get_currency_historical_data <- function(url) {
 ```{r Bitcoin Historical Data from CoinMarketCap}
 currency <- 'bitcoin'
 history_start <- '20090101'
-history_end <- '20180130'
+history_end <- format(Sys.time(), "%Y%m%d")
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
@@ -231,7 +232,7 @@ dat2 <- cur2_dat[cur2_s_id:(cur2_e_ed + 1),]
 y1_dat <- as.numeric(as.character(cur1_dat$Close[cur1_s_id:(cur1_e_ed + 1)]))
 y2_dat <- as.numeric(as.character(cur2_dat$Close[cur2_s_id:(cur2_e_ed + 1)]))
 
-createDualAxisPlot <- function(date, y1_dat, y2_dat) {
+createDualAxisPlot <- function(date, coin1, y1_dat, coin2, y2_dat) {
   trace1 <- list(
     x = c(date),
     y = c(y1_dat),
@@ -241,7 +242,7 @@ createDualAxisPlot <- function(date, y1_dat, y2_dat) {
       size = 2
     ), 
     mode = "lines+markers", 
-    name = cur1_dat$Name, 
+    name = coin1, 
     opacity = 1, 
     type = "scatter", 
     uid = "e27bd3", 
@@ -257,7 +258,7 @@ createDualAxisPlot <- function(date, y1_dat, y2_dat) {
       size = 5
     ), 
     mode = "lines+markers", 
-    name = cur2_dat$Name, 
+    name = coin2, 
     type = "scatter", 
     uid = "efd000", 
     yaxis = "y2" 
@@ -337,7 +338,7 @@ createDualAxisPlot <- function(date, y1_dat, y2_dat) {
   return(p)
 }
 
-p <- createDualAxisPlot(date, y1_dat, y2_dat)
+p <- createDualAxisPlot(date, 'BTC', y1_dat, 'ETH', y2_dat)
 p
 
 #https://plot.ly/python/custom-buttons/  follow to finalize
@@ -351,9 +352,26 @@ library(plotly)
 library(shinythemes)
 library(dplyr)
 
+numCoins = 15
+currentCoinMetric = 'Close'
 # Store features and actual class in seprate variables
-featureList <- colnames(dat1)
-class <- data$Name
+if (exists("coin_info") == FALSE)
+        coin_info <- get_list_of_all_coinmarketcap_coins()
+if (exists("coin_data_lists") == FALSE)
+    coin_data_lists <- list()
+coins <- coin_info[1:numCoins,2] # First 15 coins
+coinList <- as.character(coins)
+coinNames <- as.character(coin_info[1:numCoins,1])
+i <- 1
+for (c in coinNames) {
+   if (is.null(coin_data_lists[[coinList[i]]]) == TRUE) {
+        url <- get_currency_data_download_url(c, history_start, history_end)
+        coin_data_lists[[coinList[i]]] <- get_currency_historical_data(url)
+   }
+   i = i+1
+}
+
+coinMetrics <- c('Low', 'High', 'Open', 'Close', 'Volume', 'Market Cap')
 
 # ui.R definition
 ui <- fluidPage(
@@ -362,49 +380,115 @@ ui <- fluidPage(
 
   # Feature selection
   fixedRow(
-    column(6, selectInput(inputId = "featureInput1", label = "Select first coin", choices = featureList, selected = "Low")),
-    column(6, selectInput(inputId = "featureInput2", label = "Select second coin", choices = featureList, selected = "Low"))),
+    column(4, selectInput(inputId = "coinInput1", label = "Select first coin", choices = coinList, selected = coinList[1])),
+    column(4, selectInput(inputId = "coinInput2", label = "Select second coin", choices = coinList, selected = coinList[2])),
+    column(4, selectInput(inputId = "coinMetric", label = "Select coin metric", choices = coinMetrics, selected = coinMetrics[1]))
+    ),
 
   # First row
   fixedRow(
-    column(12, plotlyOutput("Plot1", height = "600px")))
+    column(12, plotlyOutput("Plot", height = "600px"))
+    #,column(12, plotlyOutput("CorrelationPlot", height = "600px"))
+    )
 )
 
-
-# server
-server <- function(input, output){
-
-  # Observes the second feature input for a change
-  observeEvent(input$featureInput2,{
-
+inputChangeEventHandler <- function(input, output) {
     # Create a convenience data.frame which can be used for charting
+    coin1 <- input$coinInput1
+    coin2 <- input$coinInput2
+    
+    history_start <- '20090101'
+    history_end <- format(Sys.time(), "%Y%m%d")
+
+    coin_data1 <- coin_data_lists[[coin1]]
+    coin_data2 <- coin_data_lists[[coin2]]
+    
+    coin1_p_date <- as.Date(coin_data1$Date, "%B %d, %Y")
+    coin2_p_date <- as.Date(coin_data2$Date, "%B %d, %Y")
+
+    # Find the lowest timestamp to start
+    min_coin1_date <- min(coin1_p_date)
+    min_coin2_date <- min(coin2_p_date)
+    min_date <- max(min_coin1_date, min_coin2_date)
+
+    # Find the latest timestamp to end
+    max_coin1_date <- max(coin1_p_date)
+    max_coin2_date <- max(coin2_p_date)
+    max_date <- min(max_coin1_date, max_coin2_date)
+
+    coin1_s_id <- which(coin1_p_date == min_date)
+    coin1_e_ed <- which(coin1_p_date == max_date)
+
+    coin2_s_id <- which(coin2_p_date == min_date)
+    coin2_e_ed <- which(coin2_p_date == max_date)
+
+    # Create date sequence for x axis
+    x <- coin1_p_date[coin1_s_id:(coin1_e_ed + 1)]
+    n <- length(x) + 1
+    date <- as.character.Date(x)
+    dat1 <- coin_data1[coin1_s_id:(coin1_e_ed + 1),]
+    dat2 <- coin_data2[coin2_s_id:(coin2_e_ed + 1),]
+    
     date <- as.Date(as.character(dat1$Date) , "%b %d, %Y")
-    f1 <- input$featureInput1
-    y1_dat <- as.numeric(as.character(dat1[,f1]))
-    f2 <- input$featureInput2
-    y2_dat <- as.numeric(as.character(dat2[,f2]))
+   
+    if (input$coinMetric %in% c('Low', 'High', 'Open', 'Close')) 
+    {  
+        y1_dat <- as.numeric(as.character(dat1[, input$coinMetric]))
+        y2_dat <- as.numeric(as.character(dat2[, input$coinMetric]))
+    }
+    else if (input$coinMetric %in% c('Market Cap', 'Volume')) {
+       y1_dat <- as.numeric(as.character(gsub(",","",dat1[, input$coinMetric]))) 
+       y2_dat <- as.numeric(as.character(gsub(",","",dat2[, input$coinMetric]))) 
+    }
     
     ay <- list(
       #tickfont = list(color = "red"),
       overlaying = "y",
       side = "right"
     )
-
-#    p <- plot_ly() %>%
-#      add_trace(x = date, y = y1_dat, name = "BTC", type='scatter', mode='lines+markers') %>%
-#      add_trace(x = date, y = y2_dat, name = "ETH", yaxis = "y2", type='scatter', mode='lines+markers') %>%
-#      layout(
-#        title = "Coin comparison", yaxis2 = ay,
-#        xaxis = list(title="Date")
-#      )
+    p <- createDualAxisPlot(date, coin1, y1_dat, coin2, y2_dat)
     
-    p <- createDualAxisPlot(date, y1_dat, y2_dat)
-    
-    output$Plot1 <- renderPlotly({p})
- })
+    output$Plot <- renderPlotly({p})
 }
 
-shinyApp(ui, server)
+# server
+server <- function(input, output){
+  # Observes the second feature input for a change
+  observeEvent(input$coinMetric,{
+      inputChangeEventHandler(input, output) 
+  })
+  observeEvent(input$coinInput1,{
+      inputChangeEventHandler(input, output)
+  })
+  # Observes the second feature input for a change
+  observeEvent(input$coinInput2,{
+      inputChangeEventHandler(input, output)
+  })
+  
+  # Coupled Correlation Plot on selection
+  output$CorrelationPlot <- renderPlotly({
+
+    # Get subset based on selection
+    event.data <- event_data("plotly_selected", source = "subset")
+
+    # If NULL dont do anything
+    if(is.null(event.data) == T) return(NULL)
+
+    # Get number of malignant and benign cases from selection
+    print(event.data)
+    curve_dat1 <- subset(event.data, curveNumber == 0)
+    curve_dat2 <- subset(event.data, curveNumber == 1)
+    print(curve_dat1)
+    print(curve_dat2)
+
+    # Plot
+    plot_ly(x = ~curve_dat1, y = ~curve_dat2, type = "scatter",  color = ~Class) %>%
+      layout(title = "Correlation")
+  })
+
+}
+
+runApp(shinyApp(ui, server), launch.browser=TRUE)
 
 
 ```
@@ -587,7 +671,7 @@ server <- function(input, output){
 
 }
 
-shinyApp(ui, server)
+runApp(shinyApp(ui, server), launch.browser = TRUE)
 
 ```
 
