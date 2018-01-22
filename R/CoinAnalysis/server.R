@@ -180,9 +180,38 @@ server <- function(input, output){
 
     plot_ly(df, x = ~y.x, y = ~y.y, type = "scatter") %>% #,
             #colors = colorRamp(c('#e3dfc8', '#808c6c')))%>%
-           layout(title = "Correlation plot",
+           layout(title = "Cross-Correlation of two coins in selected timeseries",
            xaxis = list(title = input$coinInput1),
            yaxis = list(title = input$coinInput2))
   })
+
+  output$Plot3 <- renderPlotly({
+      library(dplyr)
+      coins <- names(coin_data_lists)
+
+      coin_df <- data.frame()
+      coin_col_date <- coin_data_lists[[coins[1]]]['Date']
+      coin_col <- coin_data_lists[[coins[1]]][input$coinMetric]
+      coin_df <- cbind.data.frame(coin_col_date, coin_col)
+
+      for(c in coins[2:length(coins)]) {
+          cdf_date <- coin_data_lists[[c]]['Date']
+          cdf <- coin_data_lists[[c]][input$coinMetric]
+          c_df <- cbind.data.frame(cdf_date, cdf)
+          coin_df <- suppressWarnings(inner_join(coin_df, c_df, by='Date'))
+      }
+
+      coin_pr_df <- coin_df[,2:length(coin_df)]
+      names(coin_pr_df) <- coins
+      coin_mat <- as.data.frame(lapply(coin_pr_df, as.numeric))
+
+      cormat <- round(cor(coin_mat),2)
+
+      plot_ly(x = rownames(cormat), y = colnames(cormat), z = cormat, type = "heatmap",
+              colors = colorRamp(c('#e3dfc8', '#808c6c')))%>%
+              layout(title = "Correlation heatmap for Cryptocurrencies",
+                     xaxis = list(title = ""),
+                     yaxis = list(title = ""))
+
+  })
 }
-runApp(shinyApp(ui, server), launch.browser = T)

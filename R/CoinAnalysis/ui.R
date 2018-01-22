@@ -14,6 +14,7 @@ ui <- fluidPage(
     column(12, plotlyOutput("Plot1", height="500px"))
   ),
   fixedRow(
+    column(6, plotlyOutput("Plot3")),
     column(6, plotlyOutput("Plot2"))
   )
 )

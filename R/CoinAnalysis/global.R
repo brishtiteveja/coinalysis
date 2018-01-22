@@ -65,7 +65,7 @@ get_currency_historical_data <- function(url) {
 }
 #```
 
-numCoins = 5
+numCoins = 15
 history_start <- '20090101'
 history_end <- format(Sys.time(), "%Y%m%d")
 
