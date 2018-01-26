@@ -6,3 +6,6 @@
 	path = shiny-examples
 	url = https://github.com/rstudio/shiny-examples.git
 	branch = master
+[submodule "R/shiny-examples"]
+	path = R/shiny-examples
+	url = https://github.com/rstudio/shiny-examples.git
