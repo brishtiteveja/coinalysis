@@ -1,6 +1,6 @@
 library(shiny)
 
-shinyServer(function(input, output) {
+server <- shinyServer(function(input, output) {
   
   # Initialize list of inputs
   inputTagList <- tagList()

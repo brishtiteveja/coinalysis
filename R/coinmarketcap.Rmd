@@ -62,9 +62,9 @@ library(RCurl)
 library(XML)
 get_currency_historical_data <- function(url) {
   url_parsed <- htmlParse(getURL(url), asText = TRUE)
-  print(url_parsed)
+  #print(url_parsed)
   tableNodes <- getNodeSet(url_parsed, c('//*[@class="table"]'))
-  print(tableNodes)
+  #print(tableNodes)
   
   currency_historical_data <- readHTMLTable(tableNodes[[1]])
   
@@ -80,11 +80,14 @@ history_end <- format(Sys.time(), "%Y%m%d")
 
 url <- get_currency_data_download_url(currency, history_start, history_end)
 
+# Get the data
 data <- get_currency_historical_data(url)
+date <- as.Date(rev(data$Date), "%B %d, %Y")
+data$Date <- rev(date)
+
 btc_data <- data
 
-# Get the data
-date <- as.Date(rev(data$Date), "%B %d, %Y")
+
 price_high <- as.numeric(as.character(rev(data$High)))
 price_low <- as.numeric(as.character(rev(data$Low)))
 price_open <- as.numeric(as.character(rev(data$Open)))
@@ -99,7 +102,6 @@ mc[is.na(mc)] <- 0
 library(plotly)
 library(quantmod)
 
-data$Date <- rev(date)
 p <- data %>%
   plot_ly(x = ~Date, type="ohlc",
           open = ~Open, close = ~Close,

@@ -1,6 +1,6 @@
 library(shiny)
 
-shinyUI(pageWithSidebar(
+ui <- shinyUI(pageWithSidebar(
   
   # Application title
   headerPanel("Dynamically append arbitrary number of inputs"),
