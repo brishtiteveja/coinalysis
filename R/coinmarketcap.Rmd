@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## 
 ```{r currency historical data function}
 library(stringr)
+library(RCurl)
 library(XML)
 # List all coins
 get_list_of_all_coinmarketcap_coins <- function() {
@@ -158,43 +159,6 @@ p
 
 ``` 
 
-```{r Historical Data from CoinMarketCap 2 }
-currency <- 'zcoin'
-history_start <- '20090101'
-history_end <- '20180130'
-
-url <- get_currency_data_download_url(currency, history_start, history_end)
-
-data <- get_currency_historical_data(url)
-zcoin_data <- data
-
-# Get the data
-date <- as.Date(rev(data$Date), "%B %d, %Y")
-price_high <- as.numeric(as.character(rev(data$High)))
-price_low <- as.numeric(as.character(rev(data$Low)))
-price_open <- as.numeric(as.character(rev(data$Open)))
-price_close <- as.numeric(as.character(rev(data$Close)))
-vol <- as.numeric(gsub(",", "", as.character(rev(data$Volume))))
-vol[is.na(vol)] <- 0
-mc <- as.numeric(gsub(",", "", as.character(rev(data$`Market Cap`))))
-mc[is.na(mc)] <- 0
-
-
-# plotting
-library(plotly)
-library(quantmod)
-plot_title <- paste(currency, "Historical Price", sep=" ")
-
-data$Date <- rev(date)
-p <- data %>%
-  plot_ly(x = ~Date, type="ohlc",
-          open = ~Open, close = ~Close,
-          high = ~High, low = ~Low) %>%
-  layout(title = plot_title)
-
-p
-
-``` 
 
 ```{r}
 library(plotly)
@@ -388,7 +352,7 @@ ui <- fluidPage(
   # First row
   fixedRow(
     column(12, plotlyOutput("Plot", height = "600px"))
-    #,column(12, plotlyOutput("CorrelationPlot", height = "600px"))
+    ,column(12, plotlyOutput("CorrelationPlot", height = "600px"))
     )
 )
 
@@ -469,20 +433,22 @@ server <- function(input, output){
   output$CorrelationPlot <- renderPlotly({
 
     # Get subset based on selection
-    event.data <- event_data("plotly_selected", source = "subset")
-
-    # If NULL dont do anything
-    if(is.null(event.data) == T) return(NULL)
-
-    # Get number of malignant and benign cases from selection
-    print(event.data)
-    curve_dat1 <- subset(event.data, curveNumber == 0)
-    curve_dat2 <- subset(event.data, curveNumber == 1)
-    print(curve_dat1)
-    print(curve_dat2)
+    # event.data <- event_data("plotly_selected", source = "subset")
+    # 
+    # # If NULL dont do anything
+    # if(is.null(event.data) == T) return(NULL)
+    # 
+    # # Get number of malignant and benign cases from selection
+    # print(event.data)
+    # curve_dat1 <- subset(event.data, curveNumber == 0)
+    # curve_dat2 <- subset(event.data, curveNumber == 1)
+    # print(curve_dat1)
+    # print(curve_dat2)
 
     # Plot
-    plot_ly(x = ~curve_dat1, y = ~curve_dat2, type = "scatter",  color = ~Class) %>%
+    x_d <- seq(1,10)
+    y_d <- seq(30,40)
+    plot_ly(x = ~x_d, y = ~y_d, type = "scatter") %>%
       layout(title = "Correlation")
   })
 
