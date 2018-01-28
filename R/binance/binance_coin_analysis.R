@@ -72,6 +72,8 @@ for (t in b_tck$symbol) {
    g <- g %>% gs_ws_new(ws_title = sheet_name, input = daily_tck[[t]], trim = TRUE, verbose = FALSE)
 }
 
+
+# ETH market closing price analysis
 eth_tck_w_p <- list()
 eth_tck <- data.frame(nrow=14, ncol=length(b_eth_tck$symbol) + 1)
 
@@ -99,6 +101,15 @@ eth_tck <- cbind(eth_tck, eth_tck_w_p[[t]])
 
 colnames(eth_tck) <- c(b_eth_tck$symbol, 'ETHBTC')
 eth_tck_m <- eth_tck[, apply(eth_tck, 2, function(x) {!any(is.na(x))})]
+
+# variance
+varmat <- apply(eth_tck_m, 2, function(x){var(x)})
+
+sdmat <- apply(eth_tck_m, 2, function(x){sd(x)})
+names(sdmat) <- sub("ETH", "", names(sdmat))
+barplot(sdmat, cex.names=0.5, las=2)
+
+# correlation matrix
 cormat <- cor(eth_tck_m)
 
 cormat_m <- cormat[3:nrow(cormat),3:ncol(cormat)]
@@ -109,3 +120,38 @@ p
 
 library(DT)
 datatable(cormat_m)
+
+# find coins with high and low correlations
+corInf <- matrix(,nrow=nrow(cormat_m), 4)
+for (i in 1:nrow(cormat_m)) {
+    r_name <- rownames(cormat_m)[i]
+    r <- cormat_m[i,]
+    p <- r[r > 0 & r <= 1]
+    p_h <- r[r > 0.5 & r <= 1]
+    n <- r[r < 0 & r >= -1]
+    n_h <- r[r < -0.5 & r >= -1]
+
+    cl <- c(length(p), length(n), length(p_h), length(n_h))
+    corInf <- rbind(corInf, cl)
+}
+row.has.na <- apply(corInf, 1, function(x){!any(is.na(x))})
+corInf <- corInf[row.has.na,]
+rownames(corInf) <- gsub("ETH", "", rownames(cormat_m))
+colnames(corInf) <- c('positive', 'negative', 'high_positive',
+                      'high_negative')
+for (i in 1:ncol(corInf)) {
+    c_name <- colnames(corInf)[i]
+    if (is.na(c_name))
+       colnames(corInf)[i] = 'Unknown'
+}
+for (i in 1:nrow(corInf)) {
+        c_name <- rownames(corInf)[i]
+        if (is.na(c_name))
+                rownames(corInf)[i] = 'Unknown'
+}
+
+m <- corInf
+m_s_idx <- order(m[,1], decreasing = TRUE)
+m <- corInf[m_s_idx,]
+barplot(t(m), las=2, space=0.5, cex.names = 0.5)
+
