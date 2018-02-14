@@ -3,6 +3,7 @@ library(XML)
 library(RCurl)
 library(mlbench)
 library(plotly)
+library(shiny)
 library(shinythemes)
 library(dplyr)
 
@@ -15,9 +16,9 @@ get_list_of_all_coinmarketcap_coins <- function() {
   tableNodes <- getNodeSet(url_parsed, c('//*[@id="currencies-all"]'))
   all_currency <- readHTMLTable(tableNodes[[1]])
 
-  currencies <- gsub("\n","", all_currency$Name)
+  currencies <- gsub("\n"," ", all_currency$Name)
 
-  currencies <- str_replace(gsub("\\s+", " ", str_trim(currencies)), "B", "b")
+  #currencies <- str_replace(gsub("\\s+", " ", str_trim(currencies)), "B", "b")
 
   c_symbols <- c()
   c_names <- c()
@@ -73,6 +74,7 @@ currentCoinMetric = 'Close'
 # Store features and actual class in seprate variables
 if (exists("coin_info") == FALSE)
   coin_info <- get_list_of_all_coinmarketcap_coins()
+coin_info <- coin_info[complete.cases(coin_info),]
 if (exists("coin_data_lists") == FALSE)
   coin_data_lists <- list()
 coins <- coin_info[1:numCoins,2] # First 15 coins
