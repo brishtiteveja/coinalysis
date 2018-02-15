@@ -9,3 +9,6 @@
 [submodule "R/shiny-examples"]
 	path = R/shiny-examples
 	url = https://github.com/rstudio/shiny-examples.git
+[submodule "sentiment/crypto_sentiment_analysis"]
+	path = sentiment/crypto_sentiment_analysis
+	url = https://github.com/samuelcouch/understanding_crypto_with_sentiment_analysis.git
