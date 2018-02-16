@@ -6,6 +6,10 @@ library(plotly)
 library(shiny)
 library(shinythemes)
 library(dplyr)
+library(quantstrat)
+library(quantmod)
+library(xts)
+
 
 #```{r global info}
 
@@ -78,7 +82,7 @@ data$Date <- rev(date)
 btc_data <- data
 btc_close_data <- as.double(as.character(btc_data$Close))
 dat <- xts(x = btc_close_data, order.by = as.POSIXct(btc_data[,1]))
-btc_sma_7_data <- SMA(dat, n = 7) 
+btc_sma_7_data <- SMA(dat, n = 7)
 
 
 currency2 <- 'ethereum'
@@ -90,7 +94,7 @@ data$Date <- rev(date)
 eth_data <- data
 eth_close_data <- as.double(as.character(eth_data$Close))
 dat <- xts(x = eth_close_data, order.by = as.POSIXct(eth_data[,1]))
-eth_sma_7_data <- SMA(dat, n = 7) 
+eth_sma_7_data <- SMA(dat, n = 7)
 
 currency3 <- 'ripple'
 url3 <- get_currency_data_download_url(currency3, history_start, history_end)
@@ -101,7 +105,7 @@ data$Date <- rev(date)
 xrp_data <- data
 xrp_close_data <- as.double(as.character(xrp_data$Close))
 dat <- xts(x = xrp_close_data, order.by = as.POSIXct(xrp_data[,1]))
-xrp_sma_7_data <- SMA(dat, n = 7) 
+xrp_sma_7_data <- SMA(dat, n = 7)
 
 currency4 <- 'litecoin'
 url4 <- get_currency_data_download_url(currency4, history_start, history_end)
@@ -112,7 +116,7 @@ data$Date <- rev(date)
 ltc_data <- data
 ltc_close_data <- as.double(as.character(ltc_data$Close))
 dat <- xts(x = ltc_close_data, order.by = as.POSIXct(ltc_data[,1]))
-ltc_sma_7_data <- SMA(dat, n = 7) 
+ltc_sma_7_data <- SMA(dat, n = 7)
 
 currency5 <- 'cardano'
 url5 <- get_currency_data_download_url(currency5, history_start, history_end)
@@ -123,7 +127,7 @@ data$Date <- rev(date)
 ada_data <- data
 ada_close_data <- as.double(as.character(ada_data$Close))
 dat <- xts(x = ada_close_data, order.by = as.POSIXct(ada_data[,1]))
-ada_sma_7_data <- SMA(dat, n = 7) 
+ada_sma_7_data <- SMA(dat, n = 7)
 
 currency6 <- 'stellar'
 url6 <- get_currency_data_download_url(currency6, history_start, history_end)
@@ -134,7 +138,7 @@ data$Date <- rev(date)
 xlm_data <- data
 xlm_close_data <- as.double(as.character(xlm_data$Close))
 dat <- xts(x = xlm_close_data, order.by = as.POSIXct(xlm_data[,1]))
-xlm_sma_7_data <- SMA(dat, n = 7) 
+xlm_sma_7_data <- SMA(dat, n = 7)
 
 currency7 <- 'monero'
 url7 <- get_currency_data_download_url(currency7, history_start, history_end)
@@ -145,7 +149,7 @@ data$Date <- rev(date)
 xmr_data <- data
 xmr_close_data <- as.double(as.character(xmr_data$Close))
 dat <- xts(x = xmr_close_data, order.by = as.POSIXct(xmr_data[,1]))
-xmr_sma_7_data <- SMA(dat, n = 7) 
+xmr_sma_7_data <- SMA(dat, n = 7)
 
 coins <- c('BTC', 'ETH', 'XRP', 'LTC', 'ADA', 'XLM', 'XMR')
 

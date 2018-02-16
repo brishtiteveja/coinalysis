@@ -73,7 +73,7 @@ for (t in b_tck$symbol) {
 }
 
 
-# ETH market closing price analysis
+# ETH market closing price
 eth_tck_w_p <- list()
 eth_tck <- data.frame(nrow=14, ncol=length(b_eth_tck$symbol) + 1)
 
