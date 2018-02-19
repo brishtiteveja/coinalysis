@@ -6,16 +6,70 @@ binance_credentials(API_KEY_BINANCE, secret = SECRET_BINANCE)
 
 binance_coins <- binance_coins()
 
+#---------------------------------------------------------------------------------#
 # Check binance balance
+#--------------------------------------------------------------------------------#
+
 my_binance_balance <- data.frame(binance_balances(),stringsAsFactors = FALSE)
 my_non_zero_binance_balance <- subset(my_binance_balance, total != 0)
 d <- my_non_zero_binance_balance
 plot(d$total)
 
+# Ordered by decreasing total asset
+dn <- cbind(d['asset'],round(d$total))
+colnames(dn) <- c('asset', 'total')
+dn[order(d['total'], decreasing = TRUE),]
+
+# Scatter plot of assets
+ggplot(d, aes(asset, total)) +
+        geom_point(aes(color=asset)) +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Bar plot of assets
+ggplot(d, aes(x=asset, y=total)) +
+        geom_bar(aes(fill=asset), width=1, stat='identity') +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Pie chart of assets
+ggplot(d, aes(x="", total)) +
+        geom_bar(aes(fill=asset), width=1, stat='identity') +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+        coord_polar("y", start = 0)
+
+# Percentage/Proportion of assets in Pie chart
+d_cum <- cumsum(dn['total'])
+d_perc <- dn['total'] / d_cum[nrow(t_cum), ncol(t_cum)] * 100
+rows <- order(d_perc['total'], decreasing = TRUE)
+d_perc <- data.frame(d_perc[rows,])
+
+df_perc <- cbind(d[rows, 'asset'], d_perc)
+colnames(df_perc) <- c('asset', 'total')
+
+blank_theme <- theme_minimal()+
+        theme(
+                axis.title.x = element_blank(),
+                axis.title.y = element_blank(),
+                panel.border = element_blank(),
+                panel.grid=element_blank(),
+                axis.ticks = element_blank(),
+                plot.title=element_text(size=14, face="bold")
+        )
+library(scales)
+ggplot(df_perc[1:5,], aes(x="", total)) +
+        geom_bar(aes(fill=asset), width=1, stat='identity') +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+        coord_polar("y", start = 0) +
+        blank_theme +
+        theme(axis.text.x = element_blank())
+
+
+# ----------------------------------------------------------------------------------#
+
 # Check_binance
 b_act <- binance_account()
 
 # Binance coin prices
+b_pr <- binance_coins_prices()
 b_pr <- binance_coins_prices()
 
 # Binance tickers
@@ -56,10 +110,10 @@ g <- g %>% gs_ws_new(ws_title = "bnb_tickers", input = b_bnb_tck, trim = TRUE, v
 #klines
 daily_tck <- list()
 i <- 1
-for(t in b_tck$symbol) {
+for(t in b_btc_tck$symbol) {
    msg <- paste(i, ". Getting Daily data for ticker ", t, ":")
    print(msg)
-   daily_tck[[t]] <- data.frame(get_klines(t, "1d"), stringsAsFactors = FALSE)
+   daily_tck[[t]] <- data.frame(binance_klines(t, "1d"), stringsAsFactors = FALSE)
    i <- i + 1
 }
 
