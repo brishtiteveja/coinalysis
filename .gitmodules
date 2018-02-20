@@ -1,7 +1,3 @@
-[submodule "binancer"]
-	path = binancer
-	url = https://github.com/daroczig/binancer.git
-	branch = master
 [submodule "shiny-examples"]
 	path = shiny-examples
 	url = https://github.com/rstudio/shiny-examples.git
