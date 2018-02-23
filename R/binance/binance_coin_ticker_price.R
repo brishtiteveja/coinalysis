@@ -116,14 +116,14 @@ p_d <- b_tck_daily_change_df %>%
    filter(dChPer > 0) %>%
    ggplot(aes(ticker, dChPer)) +
       geom_bar(stat='identity') +
-      ylab("%24hr Change (ETH)") +
+      ylab("%24hr Change ") +
       theme(axis.text.x = element_text(angle=90, hjust = 1))
 
 p_dy<- b_tck_dyday_change_df %>%
    filter(dyChPer > 0) %>%
    ggplot(aes(ticker, dyChPer)) +
       geom_bar(stat='identity') +
-      ylab("%24hr Change yesterday (ETH)") +
+      ylab("%24hr Change yesterday ") +
       theme(axis.text.x = element_text(angle=90, hjust = 1))
 
 library(cowplot)
@@ -138,6 +138,7 @@ i <- 1
 for (t in b_tck$symbol) {
   #ticker <- paste(t, "BTC", sep="")
   #df <- tcks[[ticker]]
+  t <- 'ADXBTC'
   print(paste("ticker ", t))
   df <- tcks[[t]]
   df <- df[order(df['open_time'], decreasing=TRUE),]
@@ -151,3 +152,17 @@ for (t in b_tck$symbol) {
 
 library(DT)
 datatable(b_tck_daily_change_df)
+
+df <- binance_klines("ADXBTC",'15m')
+df <- binance_klines("EVXBTC",'15m')
+df <- binance_klines("VENBTC",'15m')
+
+library(plotly)
+p <- df %>%
+  plot_ly(x = ~open_time, type="candlestick",
+          open = ~open, close = ~close,
+          high = ~high, low = ~low) %>%
+  layout(title = "ADXBTC Candlestick Chart")
+
+p
+
