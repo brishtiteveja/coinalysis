@@ -41,7 +41,7 @@ btc_sym <- grep(".*BTC$", b_tck$symbol )
 b_btc_tck <- b_tck[btc_sym,]
 
 eth_sym <- grep(".*ETH$", b_tck$symbol )
-b_tck <- b_tck[eth_sym,]
+b_eth_tck <- b_tck[eth_sym,]
 
 bnb_sym <- grep(".*BNB$", b_tck$symbol)
 b_bnb_tck <- b_tck[bnb_sym,]
@@ -53,9 +53,9 @@ cur_tck <- b_tck
 # Get the ticker price
 tcks <- list()
 i <- 1
-tm <- '1d'
+tm <- '1m'
 for(t in b_tck$symbol) {
-  msg <- paste(i, ". Getting Daily data for ticker ", t, ":")
+  msg <- paste(i, ". Getting Daily", tm, "data for ticker ", t, ":")
   print(msg)
   tryCatch(
   {
@@ -70,6 +70,7 @@ for(t in b_tck$symbol) {
 
 # Save the data frame
 today <- format(Sys.time(), "%Y-%m-%d")
+cur_tck_n = 'all'
 fn <- paste("BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 save(tcks, file=fn)
 
