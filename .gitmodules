@@ -20,3 +20,6 @@
 [submodule "ethereum_future"]
 	path = python/ethereum_future
 	url = https://github.com/llSourcell/ethereum_future.git
+[submodule "python/nn-finance"]
+	path = python/nn-finance
+	url = https://github.com/BenjiKCF/Neural-Network-with-Financial-Time-Series-Data.git
