@@ -110,12 +110,21 @@ g <- g %>% gs_ws_new(ws_title = "bnb_tickers", input = b_bnb_tck, trim = TRUE, v
 #klines
 daily_tck <- list()
 i <- 1
-for(t in b_btc_tck$symbol) {
+tm <- '3m'
+for(t in b_tck$symbol) {
    msg <- paste(i, ". Getting Daily data for ticker ", t, ":")
    print(msg)
-   daily_tck[[t]] <- data.frame(binance_klines(t, "1d"), stringsAsFactors = FALSE)
+   daily_tck[[t]] <- data.frame(binance_klines(t, tm), stringsAsFactors = FALSE)
    i <- i + 1
 }
+
+# Save the data frame
+today <- format(Sys.time(), "%Y-%m-%d")
+fn <- paste("BinanceData/Binance_tickers_", tm,"_", today,".Rda", sep="")
+save(daily_tck, file=fn)
+
+# Loading the data frame
+daily_tck <- load(fn)
 
 i <- 1
 for (t in b_tck$symbol) {
