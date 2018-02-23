@@ -8,3 +8,15 @@
 [submodule "sentiment/crypto_sentiment_analysis"]
 	path = sentiment/crypto_sentiment_analysis
 	url = https://github.com/samuelcouch/understanding_crypto_with_sentiment_analysis.git
+[submodule "predicting_stock_prices"]
+	path = python/predicting_stock_prices
+	url = https://github.com/llSourcell/predicting_stock_prices.git
+[submodule "bitcoin_prediction"]
+	path = python/bitcoin_prediction
+	url = https://github.com/llSourcell/bitcoin_prediction.git
+[submodule "stock-market-prediction-challenge"]
+	path = python/stock-market-prediction-challenge
+	url = https://github.com/Avhirup/Stock-Market-Prediction-Challenge.git
+[submodule "ethereum_future"]
+	path = python/ethereum_future
+	url = https://github.com/llSourcell/ethereum_future.git
