@@ -3,8 +3,8 @@ import time
 from binance.client import Client as BinanceClient
 from binance.exceptions import BinanceAPIException, BinanceWithdrawException
 
-API_KEY = '8Nw1mwhupNsIkDOSYysHxZRNommviy1QWygbbN5HdWd34wqi6cJCZLkg4ydW9jJ7'
-API_SECRET = '0xOPEHJEgQkOElDKF2JTeMpL22OH7F9gnJjSa0jxw37Wm8RaVtneZWi6Cjg98yqG'
+API_KEY=''
+API_SECRET=''
 
 bclient = BinanceClient(API_KEY, API_SECRET)
 

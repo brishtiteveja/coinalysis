@@ -11,3 +11,18 @@
 [submodule "Deep-Trading"]
 	path = python/Deep-Trading
 	url = https://github.com/Rachnog/Deep-Trading.git
+[submodule "predicting_stock_prices"]
+	path = python/predicting_stock_prices
+	url = https://github.com/llSourcell/predicting_stock_prices.git
+[submodule "bitcoin_prediction"]
+	path = python/bitcoin_prediction
+	url = https://github.com/llSourcell/bitcoin_prediction.git
+[submodule "stock-market-prediction-challenge"]
+	path = python/stock-market-prediction-challenge
+	url = https://github.com/Avhirup/Stock-Market-Prediction-Challenge.git
+[submodule "ethereum_future"]
+	path = python/ethereum_future
+	url = https://github.com/llSourcell/ethereum_future.git
+[submodule "python/nn-finance"]
+	path = python/nn-finance
+	url = https://github.com/BenjiKCF/Neural-Network-with-Financial-Time-Series-Data.git

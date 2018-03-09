@@ -3,3 +3,5 @@
 .RData
 R/CoinAnalysis/rsconnect/
 R/binance/config.R
+python/bitcoin_prediction
+python/predicting_stock_prices
