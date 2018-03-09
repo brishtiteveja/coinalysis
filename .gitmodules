@@ -8,3 +8,6 @@
 [submodule "sentiment/crypto_sentiment_analysis"]
 	path = sentiment/crypto_sentiment_analysis
 	url = https://github.com/samuelcouch/understanding_crypto_with_sentiment_analysis.git
+[submodule "Deep-Trading"]
+	path = python/Deep-Trading
+	url = https://github.com/Rachnog/Deep-Trading.git

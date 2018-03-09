@@ -90,6 +90,18 @@ plot(RSI(Cl(SYMB), n = 2), col='red')
 # What kind of indicator?
 "reversion"
 
+# Add a 5-min SMA indicator to strategy.st
+add.indicator(strategy = strategy.st,
+
+              # Add the SMA function
+              name = "SMA",
+
+              # Create a lookback period
+              arguments = list(x = quote(Cl(mktdata)), n = 5),
+
+              # Label your indicator SMA200
+              label = "SMA5")
+
 # Add a 15-min SMA indicator to strategy.st
 add.indicator(strategy = strategy.st,
 
@@ -175,7 +187,7 @@ test_subset <- test["2018-02-22 18:58:59/2018-02-22 19:11:59"]
 add.signal(strategy.st, name = "sigComparison",
 
            # We are interested in the relationship between the SMA50 and the SMA200
-           arguments = list(columns = c("SMA15", "SMA60"),
+           arguments = list(columns = c("SMA5", "SMA15"),
 
                             # Particularly, we are interested when the SMA15 is greater than the SMA60
                             relationship = "gt"),
@@ -187,7 +199,7 @@ add.signal(strategy.st, name = "sigComparison",
 add.signal(strategy.st, name = "sigCrossover",
 
            # We're interested in the relationship between the SMA50 and the SMA200
-           arguments = list(columns = c("SMA15", "SMA60"),
+           arguments = list(columns = c("SMA5", "SMA15"),
 
                             # The relationship is that the SMA50 crosses under the SMA200
                             relationship = "lt"),
@@ -217,7 +229,7 @@ add.signal(strategy.st, name = "sigThreshold",
 add.signal(strategy.st, name = "sigThreshold",
 
            # Reference the column of DVO_2_12
-           arguments = list(column = "DVO_2_12",
+           arguments = list(column = "DVO_2_6",
 
                             # Set a threshold of 80
                             threshold = 80,
@@ -297,13 +309,13 @@ tstats$Profit.Factor
 # Use chart.Posn to view your system's performance on SPY
 chart.Posn(Portfolio = portfolio.st, Symbol = "SYMB")
 
-sma15 = SMA(Cl(SYMB), n=15)
+sma5 = SMA(Cl(SYMB), n=5)
 # Overlay the SMA50 on your plot as a blue line
-add_TA(sma15, on = 1, col = "green")
+add_TA(sma5, on = 1, col = "green")
 
-sma60 = SMA(Cl(SYMB), n=60)
+sma15 = SMA(Cl(SYMB), n=15)
 # Overlay the SMA60 on your plot as a red line
-add_TA(sma60, on = 1, col = "blue")
+add_TA(sma15, on = 1, col = "blue")
 
 dvo <- DVO(HLC = HLC(SYMB), navg = 2, percentlookback = 12)
 
@@ -314,5 +326,10 @@ add_TA(dvo)
 portpl <- .blotter$portfolio.cryptostrat$summary$Net.Trading.PL
 SharpeRatio.annualized(portpl, geometric=FALSE)
 
+# Get instrument returns
+instrets <- PortfReturns(portfolio.st)
+
+# Compute Sharpe ratio from returns
+SharpeRatio.annualized(instrets, geometric = FALSE)
 
 
