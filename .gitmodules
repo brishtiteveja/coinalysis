@@ -26,3 +26,6 @@
 [submodule "python/nn-finance"]
 	path = python/nn-finance
 	url = https://github.com/BenjiKCF/Neural-Network-with-Financial-Time-Series-Data.git
+[submodule "R/IKTrading"]
+	path = R/IKTrading
+	url = https://github.com/IlyaKipnis/IKTrading.git

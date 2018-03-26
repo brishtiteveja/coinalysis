@@ -1,14 +1,15 @@
 library(binancer)
 source('../binance/Config.R')
 
-t <- 'DGDETH'
+t <- 'XZCETH'
 
-tm <- '1m'
+tm <- '1d'
 tkr <- binance_klines(t, interval=tm)
 df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
 
 library(xts)
 SYMB <- xts(df[,c('open', 'high', 'low', 'close', 'volume')], order.by = df$close_time)
+plot(SYMB)
 plot(index(SYMB),SYMB$close, t='l')
 
 # Load the quantstrat package
@@ -70,12 +71,102 @@ plot(Cl(SYMB))
 # Overlay a 15-min SMA
 lines(SMA(Cl(SYMB), n = 15), col = 'red')
 # Overlay a 5-min SMA
+lines(SMA(Cl(SYMB), n = 2), col = 'orange')
+# Overlay a 5-min SMA
 lines(SMA(Cl(SYMB), n = 5), col = 'blue')
 # Overlay a 30-min SMA
 lines(SMA(Cl(SYMB), n = 30), col = 'green')
 # Overlay a 60-min SMA
 lines(SMA(Cl(SYMB), n = 60), col = 'pink')
 
+# Hull Moving Average
+lines(HMA(Cl(SYMB), n = 2), col='red')
+
+#Hull Moving Average
+HMA_m <- function(src, length) {
+        #HMA = WMA(2*WMA(n/2) − WMA(n)),sqrt(n))
+        half_wma <- 2 * WMA(src, length / 2)
+        full_wma <- WMA(src, length)
+        n <- round(sqrt(length))
+        res <- WMA(half_wma - full_wma, n)
+        return(res)
+}
+p <- Cl(SYMB)
+plot(time(p),p$close, type='l')
+lines(time(p), HMA_m(Cl(SYMB), 2), col='brown')
+lines(time(p), HMA_m(Cl(SYMB), 4), col='brown')
+lines(time(p), HMA_m(Cl(SYMB), 8), col='red')
+
+# The function for computing the Ichimoku cloud
+ichimoku <- function(data,pars)
+{
+
+        # REMEMBER THAT THE DATA SHOULD BE IN ORDER
+        #
+        # HIGH, LOW and CLOSE
+        #
+        # ==========================================
+
+        # Number of observations
+        Nobs <- NROW(data)
+
+        # Get the three parameters
+        p1 <- pars[1]
+        p2 <- pars[2]
+        p3 <- pars[3]
+
+        # The maximum of these should be p3, check
+        if ((p1 > p2) | (p1 > p3) | (p2 > p3))
+        {
+                stop(“parameters should enter in ascending order”)
+        }
+        # Set the max
+        maxp <- p3
+
+        # You will leave out maxp observations
+        cloud.lines <- matrix(0,nrow=Nobs-maxp,ncol=5)
+        colnames(cloud.lines) <- c(“Tenkan”,”Kijun”,”SenkouA”,”SenkouB”,”Chikou”)
+
+        # Run a loop to make the computations
+        for (i in seq(maxp+1,Nobs,1))
+        {
+                # Compute the cloud lines
+                tenkan <- (max(data[seq(i-p1,i,1),1])+min(data[seq(i-p1,i,1),2]))/2
+                kijun <- (max(data[seq(i-p2,i,1),1])+min(data[seq(i-p2,i,1),2]))/2
+                senkouA<- (tenkan+kijun)/2
+                senkouB<- (max(data[seq(i-p3,i,1),1])+min(data[seq(i-p3,i,1),2]))/2
+                chikou <- data[i,3]
+
+                # Save in appropriate places
+                cloud.lines[(i-maxp),] <- c(tenkan,kijun,senkouA,senkouB,chikou)
+        }
+
+        # OK, now align them correctly: SenkouA and SenkouB are moved p2 periods forward
+        # while Chikou is moved p2 periods backward…
+        A1 <- rbind(cloud.lines[,1:2],matrix(NA,p2,2))
+        A2 <- rbind(matrix(NA,p2,2),cloud.lines[,3:4])
+        A3 <- c(cloud.lines[(p2+1):(Nobs-maxp),5],matrix(NA,2*p2,1))
+        new.cloud.lines <- cbind(A1,A2,A3)
+        colnames(new.cloud.lines) <- colnames(cloud.lines)
+
+        # Align the data as well
+        new.data <- rbind(data[(maxp+1):Nobs,],matrix(NA,p2,3))
+        colnames(new.data) <- colnames(data)
+
+        # OK, return everything
+        return(list(data=new.data,cloud.lines=new.cloud.lines))
+}
+
+
+
+# Set the ichimoku parameters
+plot(HLC(SYMB), legend.loc = 'bottomleft', cex=0.4)
+require(quantmod)
+require(IKTrading)
+ibm_ic = ichimoku(HLC(SYMB))[,1:5] #, nFast = 2, nSlow = 14, nMed = 7)
+plot(ibm_ic, legend.loc = 'bottomleft', cex=0.4)
+t <- time(ibm_ic)
+polygon(c(t,rev(t)), c(ibm_ic$spanA, rev(ibm_ic$spanB), col=rgb(1, 0, 0,0.5), border=NA))
 # What kind of indicator?
 "trend"
 
