@@ -21,6 +21,7 @@ colnames(dn) <- c('asset', 'total')
 dn[order(d['total'], decreasing = TRUE),]
 
 # Scatter plot of assets
+library(ggplot2)
 ggplot(d, aes(asset, total)) +
         geom_point(aes(color=asset)) +
         theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -217,4 +218,13 @@ m <- corInf
 m_s_idx <- order(m[,1], decreasing = TRUE)
 m <- corInf[m_s_idx,]
 barplot(t(m), las=2, space=0.5, cex.names = 0.5)
+
+
+# Let's train models and predict next price
+df <- daily_tck[['ETHBTC']]
+head(df)
+n <- ncol(df)
+
+# Do regression modelling, GAM, GLM, xgboost, random forest, arima modeling , forecasting,
+# rnn 
 

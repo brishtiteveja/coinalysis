@@ -1,5 +1,5 @@
 library(binancer)
-source('./binance/config.R')
+source('../binance/config.R')
 
 # Authenticate with Binance credentials
 binance_credentials(API_KEY_BINANCE, secret = SECRET_BINANCE)
@@ -38,7 +38,7 @@ tm <- '1m'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 save(tcks, file=fn)
 
 # Get the ticker prices for every 3m
@@ -46,7 +46,7 @@ tm <- '3m'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 save(tcks, file=fn)
 
 # Get the ticker prices for every 5m
@@ -54,7 +54,7 @@ tm <- '5m'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 tcks <- save(tcks, file=fn)
 
 # Get the ticker prices for every 15m
@@ -62,7 +62,7 @@ tm <- '15m'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 tcks <- save(tcks, file=fn)
 
 # Get the ticker prices for every 30m
@@ -70,7 +70,7 @@ tm <- '30m'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 tcks <- save(tcks, file=fn)
 
 # Get the ticker prices for every 30m
@@ -78,7 +78,7 @@ tm <- '1h'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 tcks <- save(tcks, file=fn)
 
 # Get the ticker prices for every 30m
@@ -86,5 +86,5 @@ tm <- '1d'
 tcks <- download_tickers(tm)
 
 # Save the data frame
-fn <- paste("/Users/andy/Documents/projects/crypto/coinmarketcapr/R/binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
+fn <- paste("../binance/BinanceData/Binance_tickers_",cur_tck_n,"_", tm,"_", today,".Rda", sep="")
 tcks <- save(tcks, file=fn)
