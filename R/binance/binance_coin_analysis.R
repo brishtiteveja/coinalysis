@@ -221,10 +221,98 @@ barplot(t(m), las=2, space=0.5, cex.names = 0.5)
 
 
 # Let's train models and predict next price
+setwd("~/Documents/projects/crypto/coinalysis/R/binance/BinanceData")
+load('Binance_tickers_all_5m_2018-05-07.Rda')
+dfp <- tcks[['TRXETH']]
+
 df <- daily_tck[['ETHBTC']]
 head(df)
 n <- ncol(df)
 
 # Do regression modelling, GAM, GLM, xgboost, random forest, arima modeling , forecasting,
 # rnn 
+dfp <- tcks[['TRXETH']]
+plot(dfp$close_time, dfp$close, t='l')
+
+dfp$close_open <- dfp$close/dfp$open
+dfp$low_open <- dfp$low/dfp$open
+dfp$high_open <- dfp$high/dfp$open
+
+plot(dfp$close_time, dfp$close_open, t='l')
+lines(dfp$close_time, dfp$low_open, col=2)
+lines(dfp$close_time, dfp$high_open, col=3)
+
+library(plotly)
+library(dplyr)
+p <-  plot_ly(x=dfp$close_open, y=dfp$low_open, z=dfp$high_open) %>%
+      add_markers() %>%
+      layout(scene = list(xaxis = list(title = 'Close/Open'),
+                      yaxis = list(title = 'Low/Open'),
+                      zaxis = list(title = 'High/Open'),
+                      marker = list(size=0.2)))
+p
+
+
+i <- 1
+for (c in names(tcks)) {
+  tryCatch({
+    dfp <- tcks[[c]]
+    ts <- ts(dfp$close, start=dfp$close_time[1], frequency=20)
+    mf <- sarima(ts, p = 1, q=1, d= 0)
+    mf$ttable
+    par(mfrow=c(2,1))
+    plot(ts, main=paste(i, c, sep='. '))
+    sarima.for(ts, n.ahead=20, p=1,q=1, d= 0)
+  },
+  error = function(cond) {
+    print(paste('error', cond))
+  }, 
+  warning = function(cond) {
+    print(paste('warning',cond))
+  }, 
+  finally = function(cond) {
+    print(paste('finally',cond))
+  })
+  
+  i <- i + 1
+}
+
+library(quantstrat)
+library(ggplot2)
+i <- 1
+for (c in names(tcks)) {
+  tryCatch({
+    print(c)
+    dfp <- tcks[[c]]
+    ts <- ts(dfp$close, start=dfp$close_time[1], frequency=20)
+
+    gf <- ggplot()
+    
+    y <- SMA(ts, n = 10)
+    n <- length(y)
+    x <- as.numeric(1:n)
+    df <- data.frame(x=x, y=y)
+    gf <- ggplot(df, aes(x=x,y=y)) + geom_line()
+    
+    i = i+1
+    y <- SMA(ts, n = 6)
+    n <- length(y)
+    x <- as.numeric(1:n)
+    df <- data.frame(x=x, y=y)
+    gf <- gf + geom_line(data=df, aes(x=x,y=y, colour='green')) + ggtitle(c)
+    plot(gf)
+    sleep(5)
+  },
+  error = function(cond) {
+    print(paste('error', cond))
+  }, 
+  warning = function(cond) {
+    print(paste('warning',cond))
+  }, 
+  finally = function(cond) {
+    print(paste('finally',cond))
+  })
+  
+  i <- i + 1
+}
 
