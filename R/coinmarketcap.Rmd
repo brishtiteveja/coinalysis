@@ -85,7 +85,6 @@ data <- get_currency_historical_data(url)
 date <- as.Date(rev(data$Date), "%B %d, %Y")
 data$Date <- rev(date)
 
-btc_data <- data
 
 
 price_high <- as.numeric(as.character(rev(data$High)))
@@ -96,6 +95,11 @@ vol <- as.numeric(gsub(",", "", as.character(rev(data$Volume))))
 vol[is.na(vol)] <- 0
 mc <- as.numeric(gsub(",", "", as.character(rev(data$`Market Cap`))))
 mc[is.na(mc)] <- 0
+
+btc <- price_close
+date_b <- date
+#eth <- price_close
+#date_e <- date
 
 
 # plotting
@@ -110,6 +114,18 @@ p <- data %>%
 
 p
 
+# btc <- price_close
+# eth <- price_close
+de <- subset(date_e, date_e >= "2017-01-01")
+dse <- which(date_e == "2017-01-01")
+dee <- length(date_e)
+plot(de, eth[dse:dee], t='l')
+db <- subset(date_b, date_b >= "2017-01-01")
+dsb <- which(date_b == "2017-01-01")
+deb <- length(date_b)
+par(new=T)
+plot(db, btc[dsb:deb], col='green', axes=F, xawt='n', yawt='n', xlab="", ylab="", t='l')
+
 
 plot(date, price_high, cex=0.05)
 lines(date, price_high)
@@ -120,7 +136,152 @@ points(date, price_open, col='red', cex=0.05)
 lines(date, price_close, col='blue')
 points(date, price_close, col='blue', cex=0.05)
 
+btc_pr_df <- data.frame(Time=date, Price=price_close)
+library(xts)
+btc_pr_xt <- xts(x = btc_pr_df$Price, order.by = btc_pr_df$Time)
 
+btc_pr <- data.frame(Time=index(btc_pr_xt), Price=coredata(btc_pr_xt))
+# 25%  weighted average
+btc_pr.lowess <- lowess(x=btc_pr$Time, y=btc_pr$Price, f=0.05)
+par(mfrow=c(1,1))
+plot(btc_pr, t='l')
+lines(btc_pr.lowess, col='green')
+
+btc_pr.dtrnd <- btc_pr
+btc_pr.dtrnd$Price <- btc_pr$Price - btc_pr.lowess$y
+plot(btc_pr.dtrnd, t='l')
+
+plot.new()
+par(mar=c(4,4,4,4))
+btc_pr_sub <- btc_pr_xt["2013-08-01/2014-07-31"]
+str(btc_pr_sub)
+par(mfrow=c(1,1))
+plot(index(btc_pr_sub), coredata(btc_pr_sub), t='l', xlab='Time', ylab='LTC price', yaxt='n',
+     main='Litecoin Price Trend Per Year')
+
+ytick <- seq(0, 40, 10)
+ytickl <- paste(ytick, "x", sep="")
+text(par("usr")[1], ytick, labels = ytickl, pos=2, xpd = TRUE)
+btc_pr1 <- data.frame(Time=index(btc_pr_sub), Price=coredata(btc_pr_sub))
+
+btc_pr_sub2 <- btc_pr_xt["2014-08-01/2015-07-31"]
+str(btc_pr_sub2)
+par(mfrow=c(1,1))
+par(new=T)
+plot(index(btc_pr_sub2), coredata(btc_pr_sub2), axes=F, xlab="", ylab="", t='l', col=2)
+btc_pr2 <- data.frame(Time=index(btc_pr_sub2), Price=coredata(btc_pr_sub2))
+
+btc_pr_sub3 <- btc_pr_xt["2015-08-01/2016-07-31"]
+str(btc_pr_sub3)
+#par(mfrow=c(1,1))
+#plot(btc_pr_sub3)
+par(new=T)
+plot(index(btc_pr_sub3), coredata(btc_pr_sub3), axes=F, xlab="", ylab="", t='l', col=3)
+btc_pr3 <- data.frame(Time=index(btc_pr_sub3), Price=coredata(btc_pr_sub3))
+
+btc_pr_sub4 <- btc_pr_xt["2016-08-31/2017-07-31"]
+str(btc_pr_sub4)
+#par(mfrow=c(1,1))
+#plot(btc_pr_sub4)
+par(new=T)
+plot(index(btc_pr_sub4), coredata(btc_pr_sub4), axes=F, xlab="", ylab="", t='l', col=4)
+btc_pr4 <- data.frame(Time=index(btc_pr_sub4), Price=coredata(btc_pr_sub4))
+
+btc_pr_sub5 <- btc_pr_xt["2017-08-31/2018-05-23"]
+str(btc_pr_sub5)
+par(mfrow=c(1,1))
+#plot(btc_pr_sub5)
+par(new=T)
+par(mar=c(4,4,4,10))
+plot(index(btc_pr_sub5), coredata(btc_pr_sub5), axes=F, xlab="", ylab="", t='l', col=5)
+btc_pr5 <- data.frame(Time=index(btc_pr_sub5), Price=coredata(btc_pr_sub5))
+
+legend('topleft', legend=c('2013-2014', '2014-2015', '2015-2016', '2016-2017', '2017-2018'),
+       col = 1:5,
+       lty=1)
+
+legend('topleft', legend=c('2015-2016', '2016-2017', '2017-2018'),
+       col = 1:3, 
+       lty=1)
+
+str(btc_pr)
+library(astrochron)
+btc_pr.dmn <- demean(btc_pr, genplot = F)
+par(mfrow=c(1,1))
+plot(btc_pr.dmn, t='l')
+
+btc_pr.dtrnd2 <- detrend(btc_pr, genplot = F)
+par(mfrow=c(1,1))
+plot(btc_pr.dtrnd2, t='l')
+
+par(mfrow=c(1,1))
+PP_konv <- spec.pgram(btc_pr$Price, demean = TRUE, detrend = TRUE, log='yes')
+
+df <- data.frame(freq=PP_konv$freq, spec=PP_konv$spec)
+df <- df[order(df$spec, decreasing = T),]
+df$period <- 1/df$freq
+head(df, 100)
+
+abline(v=.0015, lty=2) # 666 days
+abline(v=.01, lty=2) # 100 days
+abline(v=.015, lty=2) # 66.67 days
+abline(v=.028, lty=2) # 35 days
+
+tmp <- btc_pr
+btc_pr <- btc_pr.dtrnd
+plot(btc_pr, t='l')
+ts=data.frame(time=1:length(index(btc_pr)), Price=coredata(btc_pr))
+ts = ts[,c('time', 'Price.Price')]
+names(ts) <- c('Time', 'Price')
+head(ts)
+Mspec <- mtm(ts, #detrend = T, 
+             tbw = 2,
+             #ar1 = TR,
+             CLpwr = TRUE,
+             pl  = 1,
+             xmin=0, xmax=0.12,
+             output=1
+            )
+
+df <- data.frame(freq=Mspec$Frequency, spec=Mspec$Power, AR1_CL=Mspec$AR1_CL,   Harmonic_CL=Mspec$Harmonic_CL)
+df <- df[order(df$AR1_CL, decreasing = T),]
+df$period <- 1/df$freq
+head(df, 50)
+
+df <- df[order(df$Harmonic_CL, decreasing = T),]
+df$period <- 1/df$freq
+head(df, 1000)
+
+btc_pr <- tmp
+
+par(new=T)
+spec.pgram(btc_pr1$Price, demean = TRUE, detrend = TRUE, log='yes',
+           axes=F, xlab="", ylab="", col=2)
+par(new=T)
+spec.pgram(btc_pr2$Price, demean = TRUE, detrend = TRUE, log='yes',
+           axes=F, xlab="", ylab="", col=3)
+par(new=T)
+spec.pgram(btc_pr3$Price, demean = TRUE, detrend = TRUE, log='yes',
+           axes=F, xlab="", ylab="", col=4)
+par(new=T)
+spec.pgram(btc_pr4$Price, demean = TRUE, detrend = TRUE, log='yes',
+           axes=F, xlab="", ylab="", col=5)
+
+
+library(RobPer)
+PP_new <- RobPer(ts=data.frame(time=as.numeric(index(btc_pr_xt)), Price=coredata(btc_pr_xt)), 
+                               weighting=FALSE, periods=1/PP_konv$freq,
+    regression="L2", 
+    model="sine")
+
+par(new=T)
+plot(PP_konv$freq, PP_konv$spec * var(btc_pr$Price)*n/2, ylab="periodogram",   xlab="frequency",
+    main="Comparison of RobPer(...regression='LS', model='sine') and spec.pgram",
+    type='l',
+    xlim=c(0,0.15), log='y')
+
+
+plot.spectrum(btc_pr)
 ```
 
 ```{r Historical Data from CoinMarketCap 1}

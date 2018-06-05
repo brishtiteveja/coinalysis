@@ -1,9 +1,9 @@
 library(binancer)
 source('../binance/Config.R')
 
-t <- 'XZCETH'
+t <- 'BTCUSDT'
 
-tm <- '1d'
+tm <- '1m'
 tkr <- binance_klines(t, interval=tm)
 df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
 
@@ -12,30 +12,54 @@ SYMB <- xts(df[,c('open', 'high', 'low', 'close', 'volume')], order.by = df$clos
 plot(SYMB)
 plot(index(SYMB),SYMB$close, t='l')
 
+plot_ohlc <- function(SYMB, wd=2) {
+  par(mfrow=c(1,1))
+  plot.new()
+  plot(index(SYMB), SYMB$open, t='l', ylab='Price', xlab='Time', lwd=wd)
+  lines(index(SYMB), SYMB$close, col='green', lwd=wd)
+  lines(index(SYMB), SYMB$high, col='red', lwd=wd)
+  lines(index(SYMB), SYMB$low, col='pink', lwd=wd)
+  legend("topright", legend=c('open', 'close', 'high', 'low'), lty=1, 
+       col=c('black', 'green', 'red', 'pink'), cex=0.75)
+}
+
+# directories
+binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
+csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
+
+library(xts)
+df <- read.table(paste(binance_data_dir, csv_data_file, sep="/"), 
+                   header = TRUE, sep=",", row.names = NULL, stringsAsFactors = FALSE)
+colnames(df) <- c('time', 'close', 'high', 'low', 'open')
+SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
+
+SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
+plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
+
 # Load the quantstrat package
 library(quantstrat)
 
 # Create initdate, from, and to strings
-initdate <- "2018-02-22"
-from <- "2018-02-22"
-to <- "2019-02-22"
+initdate <- "2018-06-04"
+from <- "2018-06-04"
+to <- "2019-06-30"
 
 # Set the timezone to UTC
 Sys.setenv(TZ = "UTC")
 
 # Set the currency to USD
-curr <- 'ETH'
+curr <- 'USD'
 currency(curr)
 
 # Load the quantmod package
 library(quantmod)
 
 # Use stock() to initialize SPY and set currency to USD
-stock("SYMB", currency="ETH")
+stock("SYMB", currency=curr)
 
 # Define your trade size and initial equity
-tradesize <- 0.1
-initeq <- 0.1
+tradesize <- 100
+initeq <- 100
 
 # Define the names of your strategy, portfolio and account
 strategy.st <- "cryptostrat"
@@ -98,8 +122,7 @@ lines(time(p), HMA_m(Cl(SYMB), 4), col='brown')
 lines(time(p), HMA_m(Cl(SYMB), 8), col='red')
 
 # The function for computing the Ichimoku cloud
-ichimoku <- function(data,pars)
-{
+ichimoku <- function(data,pars) {
 
         # REMEMBER THAT THE DATA SHOULD BE IN ORDER
         #
@@ -118,14 +141,14 @@ ichimoku <- function(data,pars)
         # The maximum of these should be p3, check
         if ((p1 > p2) | (p1 > p3) | (p2 > p3))
         {
-                stop(“parameters should enter in ascending order”)
+                stop("parameters should enter in ascending order")
         }
         # Set the max
         maxp <- p3
 
         # You will leave out maxp observations
         cloud.lines <- matrix(0,nrow=Nobs-maxp,ncol=5)
-        colnames(cloud.lines) <- c(“Tenkan”,”Kijun”,”SenkouA”,”SenkouB”,”Chikou”)
+        colnames(cloud.lines) <- c("Tenkan","Kijun", "SenkouA", "SenkouB", "Chikou")
 
         # Run a loop to make the computations
         for (i in seq(maxp+1,Nobs,1))
@@ -157,19 +180,35 @@ ichimoku <- function(data,pars)
         return(list(data=new.data,cloud.lines=new.cloud.lines))
 }
 
+ichimoku <- function(HLC, nFast=9, nMed=26, nSlow=52) {
+  turningLine <- (runMax(Hi(HLC), nFast)+runMin(Lo(HLC), nFast))/2
+  baseLine <- (runMax(Hi(HLC), nMed)+runMin(Lo(HLC), nMed))/2
+  spanA <- lag((turningLine+baseLine)/2, nMed)
+  spanB <- lag((runMax(Hi(HLC), nSlow)+runMin(Lo(HLC), nSlow))/2, nMed)
+  plotSpan <- lag(Cl(HLC), -nMed) #for plotting the original Ichimoku only
+  laggingSpan <- lag(Cl(HLC), nMed)
+  lagSpanA <- lag(spanA, nMed)
+  lagSpanB <- lag(spanB, nMed)
+  out <- cbind(turnLine=turningLine, baseLine=baseLine, spanA=spanA, spanB=spanB, plotSpan=plotSpan, laggingSpan=laggingSpan, lagSpanA, lagSpanB)
+  colnames(out) <- c("turnLine", "baseLine", "spanA", "spanB", "plotLagSpan", "laggingSpan", "lagSpanA","lagSpanB")
+  return (out)
+}
+
 
 
 # Set the ichimoku parameters
 plot(HLC(SYMB), legend.loc = 'bottomleft', cex=0.4)
 require(quantmod)
-require(IKTrading)
-ibm_ic = ichimoku(HLC(SYMB))[,1:5] #, nFast = 2, nSlow = 14, nMed = 7)
+#install_github('IlyaKipnis/IKTrading')
+#require(IKTrading)
+ibm_ic = ichimoku(HLC(SYMB), nFast = 2, nSlow = 14, nMed = 7)
 plot(ibm_ic, legend.loc = 'bottomleft', cex=0.4)
 t <- time(ibm_ic)
 polygon(c(t,rev(t)), c(ibm_ic$spanA, rev(ibm_ic$spanB), col=rgb(1, 0, 0,0.5), border=NA))
 # What kind of indicator?
 "trend"
 
+SYMB <- SYMB["2018-05-20 21:22:00/2018-06-04 21:22:00"]
 # when the short-MA crosses long-MA, then is the time to buy
 
 # Plot the closing price of SPY

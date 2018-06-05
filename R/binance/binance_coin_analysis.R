@@ -1,4 +1,5 @@
 library(binancer)
+setwd("~/Documents/projects/crypto/coinalysis/R/binance")
 source('config.R')
 
 # Set binance credentials
@@ -222,10 +223,10 @@ barplot(t(m), las=2, space=0.5, cex.names = 0.5)
 
 # Let's train models and predict next price
 setwd("~/Documents/projects/crypto/coinalysis/R/binance/BinanceData")
-load('Binance_tickers_all_5m_2018-05-07.Rda')
+load('Binance_tickers_all_5m_2018-05-21.Rda')
 dfp <- tcks[['TRXETH']]
 
-df <- daily_tck[['ETHBTC']]
+df <- tcks[['ETHBTC']]
 head(df)
 n <- ncol(df)
 
@@ -234,13 +235,13 @@ n <- ncol(df)
 dfp <- tcks[['TRXETH']]
 plot(dfp$close_time, dfp$close, t='l')
 
-dfp$close_open <- dfp$close/dfp$open
-dfp$low_open <- dfp$low/dfp$open
-dfp$high_open <- dfp$high/dfp$open
+dfp$close_high <- dfp$close/dfp$high
+dfp$low_high <- dfp$low/dfp$high
+dfp$open_high <- dfp$open/dfp$high
 
-plot(dfp$close_time, dfp$close_open, t='l')
-lines(dfp$close_time, dfp$low_open, col=2)
-lines(dfp$close_time, dfp$high_open, col=3)
+plot(dfp$close_time, dfp$close_high, t='l', ylim=c(0.98,1.02))
+lines(dfp$close_time, dfp$low_high, col=2)
+lines(dfp$close_time, dfp$open_high, col=3)
 
 library(plotly)
 library(dplyr)
@@ -253,6 +254,7 @@ p <-  plot_ly(x=dfp$close_open, y=dfp$low_open, z=dfp$high_open) %>%
 p
 
 
+library(astsa)
 i <- 1
 for (c in names(tcks)) {
   tryCatch({

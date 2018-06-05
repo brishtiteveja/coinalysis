@@ -85,10 +85,10 @@ shuffle_in_unison<- function(a, b) {
   return(res)
 }
 
-crete_Xt_Yt <- function(X, y, percentage = 0.8) {
+crete_Xt_Yt <- function(X, y, percentage = 0.65) {
   idx = as.integer(length(X) * percentage)
-  X_train = X[1:idx]
-  Y_train = y[1:idx]
+  X_train = X_train_orig = X[1:idx]
+  Y_train = Y_train_orig = y[1:idx]
   
   sres = shuffle_in_unison(X_train, Y_train)
   X_train = sres$X
@@ -98,46 +98,98 @@ crete_Xt_Yt <- function(X, y, percentage = 0.8) {
   X_test = X[(idx+1):N]
   Y_test = y[(idx+1):N]
   
-  res <- list(X_train = X_train, X_test = X_test, Y_train = Y_train, Y_test = Y_test)
+  res <- list(X_train_orig = X_train_orig, X_train = X_train, X_test = X_test, Y_train = Y_train, 
+              Y_train_orig = Y_train_orig, Y_test = Y_test)
   return(res)
 }
 
-process_time_series_data <- function(train_size, target_time, lag_size, binary=FALSE, scale=FALSE) {
+process_time_series_data <- function(train_size, target_time, lag_size, binary=FALSE, scale=FALSE, percentage = 0.9) {
   X_Y <- split_into_chunks(timeseries, TRAIN_SIZE, TARGET_TIME, LAG_SIZE, binary=FALSE, scale=FALSE)
   
   X <- X_Y$X
   Y <- X_Y$Y
   
-  res <- crete_Xt_Yt(X, Y, percentage = 0.9)
+  res <- crete_Xt_Yt(X, Y, percentage = percentage)
 
   return(res)  
 }
 
+# directories
+binance_dir <- "~/Documents/projects/crypto/coinalysis/R/binance"
+binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
 
+rda_file <- 'Binance_tickers_all_1m_2018-05-25.Rda'
+csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
 
-setwd("~/Documents/projects/crypto/coinalysis/R/binance")
-load('BinanceData/Binance_tickers_all_5m_2018-05-07.Rda')
+setwd(binance_dir)
+
+load(paste('BinanceData/', rda_file, sep=""))
 dfp <- tcks[['BTCUSDT']]
+head(dfp)
 
-timeseries = dfp$close #* 100000000
-time = dfp$close_time
+
+library(xts)
+process_csv_data <- function() {
+  df <- read.table(paste(binance_data_dir, csv_data_file, sep="/"), 
+                 header = TRUE, sep=",", row.names = NULL, stringsAsFactors = FALSE)
+  colnames(df)[1] <- 'Time'
+  dfp <- xts(df[,2:5], order.by = as.POSIXct(df$Time))
+  #plot(dfp["2018-03-10 21:22:00/2018-05-29 21:22:00"]$Close)
+  timeseries = as.numeric(unlist(dfp$Close)) #* 100000000
+  time = as.POSIXct(time(dfp))
+  
+  return(list(time=time, timeseries=timeseries))
+}
+
+ts <- process_csv_data()
+
+timeseries_orig = ts$timeseries #* 100000000
+time = ts$time
+#tL <- length(timeseries_orig)
+
+timeseries = timeseries_orig #[1:as.integer(tL* 0.80)]
+
+#time = dfp$close_time
+par(mfrow=c(1,1))
 plot(time, timeseries, t='l')
-
 
 TRAIN_SIZE = (30/5)*2
 TARGET_TIME = 1
 LAG_SIZE = 1
 
-res <- process_time_series_data(TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE)
+res <- process_time_series_data(TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE, percentage = 0.97)
 X_train <- res$X_train
+X_train_orig <- res$X_train_orig
 X_test <- res$X_test
 Y_train <- res$Y_train
+Y_train_orig <- res$Y_train_orig
 Y_test <- res$Y_test
 
 X_train <- matrix(as.numeric(unlist(X_train)), ncol=TRAIN_SIZE, byrow=TRUE)
 X_test <- matrix(as.numeric(unlist(X_test)), ncol=TRAIN_SIZE, byrow=TRUE)
 Y_train <- matrix(as.numeric(unlist(Y_train)), ncol=TARGET_TIME, byrow=TRUE)
 Y_test <- matrix(as.numeric(unlist(Y_test)), ncol=TARGET_TIME, byrow=TRUE)
+
+ny <- dim(X_train)[2]
+
+predict_continuous <- function(model, X_train_orig, ny) {
+  s <- length(X_train_orig)
+  X_test_new_list <- X_train_orig[[s]]
+  X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+  
+  X_pred_cont <- c()
+  for (i in 1:nx) {
+    #print(X_test_new_list)
+    pred = predict(model, X_test_new)
+    #print(pred)
+    X_pred_cont <- c(X_pred_cont, pred)
+    X_test_new_list <- X_test_new_list[2:ny]
+    X_test_new_list <- c(X_test_new_list, pred)
+    X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+  }
+  return(X_pred_cont) 
+}
+
 
 # Model using random forest
 #seed
@@ -175,7 +227,37 @@ e <- s + np -1
 t <- time[s:e]
 length(t)
 
+model <- model_rf
+predict_continuous_rf <- function(model, X_train_orig, nx, ny, vars ) {
+  s <- length(X_train_orig)
+  X_test_new_list <- X_train_orig[[s]]
+  X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+  colnames(X_test_new) <- c(vars)
+  
+  X_pred_cont <- c()
+  for (i in 1:nx) {
+    #print(X_test_new_list)
+    pred = predict(model, X_test_new)$predictions
+    #print(pred)
+    X_pred_cont <- c(X_pred_cont, pred)
+    X_test_new_list <- X_test_new_list[2:ny]
+    X_test_new_list <- c(X_test_new_list, pred)
+    X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+    colnames(X_test_new) <- c(vars)
+  }
+  return(X_pred_cont) 
+}
+nx <- dim(X_test)[1]
+ny <- dim(X_test)[2]
+X_pred_cont_rf <- predict_continuous_rf(model_rf, X_train_orig, nx, ny, vars)
+
+plot(time, timeseries, t='l')
 lines(t, X_pred_rf, col='red')
+lines(t, X_pred_cont_rf, col='green')
+
+plot(tail(time), tail(timeseries), t='l')
+lines(t, X_pred_rf, col='red')
+
 
 # Using GLM: quassipoisson
 head(X_train_rf)
@@ -265,6 +347,7 @@ model_xgb <- xgboost(data = X_train, # training data as matrix
 )
 
 X_pred_xgb <- predict(model_xgb, X_test)
+
 np <- length(X_pred_xgb)
 
 nt <- length(time)
@@ -275,6 +358,10 @@ length(t)
 
 lines(t, X_pred_xgb, col='green')
 
+
+X_pred_cont_xgb <- predict_continuous(model_xgb, X_train_orig, ny)
+
+lines(t, X_pred_cont_xgb, col='red')
 
 #lstm
 library(keras)
@@ -346,7 +433,9 @@ for(i in 1:nrow(X_test)){
 model %>%
   evaluate(x_test, y_test)
 
-X_pred_lstm <- predict(model, x_test)
+X_pred_lstm <- model %>% 
+  predict(x_test)
+
 np <- length(X_pred_lstm)
 
 nt <- length(time)
@@ -356,5 +445,5 @@ t <- time[s:e]
 length(t)
 
 plot(time, timeseries, t='l')
-lines(t, X_pred_lstm, col='red')
+plot(t, X_pred_lstm, col='red')
 
