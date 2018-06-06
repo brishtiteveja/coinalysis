@@ -8,6 +8,13 @@ tkr <- binance_klines(t, interval=tm)
 df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
 
 library(xts)
+library(zoo)
+library(quantstrat)
+library(quantmod)
+
+getSymbols('SPY',src='yahoo',return.class='ts')
+SYMB <- xts(SPY, order.by = as.POSIXct(time(SPY)))
+
 SYMB <- xts(df[,c('open', 'high', 'low', 'close', 'volume')], order.by = df$close_time)
 plot(SYMB)
 plot(index(SYMB),SYMB$close, t='l')
@@ -201,8 +208,64 @@ plot(HLC(SYMB), legend.loc = 'bottomleft', cex=0.4)
 require(quantmod)
 #install_github('IlyaKipnis/IKTrading')
 #require(IKTrading)
+plot_ichimoku <- function(df) {
+  require(plotly)
+  require(dplyr)
+  
+  plot_ly(data = df,
+          x = ~date,
+          open = ~open, high = ~high, low = ~low, close = ~close,
+          type = 'ohlc') %>%
+    add_trace(y = ~turnLine,
+              type = 'scatter', mode = 'lines',
+              name = 'turn line',
+              line = list(color='blue')
+    ) %>%
+    add_trace(y = ~baseLine,
+              type = 'scatter', mode = 'lines',
+              name = 'base line', 
+              line = list(color='red')
+    ) %>%
+    add_trace(y = ~spanA,
+              type = 'scatter', mode = 'lines',
+              name = 'spanA',
+              line = list(color='red')
+    ) %>%
+    add_trace(y = ~spanB,
+              type = 'scatter', mode = 'lines',
+              name = 'spanB',
+              line = list(color='green'),
+              fill = 'tonexty'
+    ) %>%
+    add_trace(y = ~laggingSpan,
+              type = 'scatter', mode = 'lines',
+              name = 'lagging span',
+              line = list(color=rgb(0.5,1,0,0.5))
+    ) %>%
+    add_trace(y = ~lagSpanA,
+              type = 'scatter', mode = 'lines',
+              name = 'lag span A',
+              line = list(color=rgb(0.25,0,0.5,0.5))
+    ) %>%
+    add_trace(y = ~lagSpanB,
+              type = 'scatter', mode = 'lines',
+              name = 'lag span B',
+              line = list(color=rgb(0.5,0,0.25,0.5))
+    )
+}
+
 ibm_ic = ichimoku(HLC(SYMB), nFast = 2, nSlow = 14, nMed = 7)
 plot(ibm_ic, legend.loc = 'bottomleft', cex=0.4)
+df <- data.frame(ibm_ic)
+df$open <- as.numeric(unlist(OHLC(SYMB)$open))
+df$high <- as.numeric(unlist(OHLC(SYMB)$high))
+df$low <- as.numeric(unlist(OHLC(SYMB)$low))
+df$close <- as.numeric(unlist(OHLC(SYMB)$close))
+df$date <- as.POSIXct(rownames(df))
+
+# plot ichimoku cloud
+plot_ichimoku(df)
+
 t <- time(ibm_ic)
 polygon(c(t,rev(t)), c(ibm_ic$spanA, rev(ibm_ic$spanB), col=rgb(1, 0, 0,0.5), border=NA))
 # What kind of indicator?
