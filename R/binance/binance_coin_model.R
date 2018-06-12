@@ -103,7 +103,7 @@ crete_Xt_Yt <- function(X, y, percentage = 0.65) {
   return(res)
 }
 
-process_time_series_data <- function(train_size, target_time, lag_size, binary=FALSE, scale=FALSE, percentage = 0.9) {
+process_time_series_data <- function(timeseries, train_size, target_time, lag_size, binary=FALSE, scale=FALSE, percentage = 0.9) {
   X_Y <- split_into_chunks(timeseries, TRAIN_SIZE, TARGET_TIME, LAG_SIZE, binary=FALSE, scale=FALSE)
   
   X <- X_Y$X
@@ -112,6 +112,73 @@ process_time_series_data <- function(train_size, target_time, lag_size, binary=F
   res <- crete_Xt_Yt(X, Y, percentage = percentage)
 
   return(res)  
+}
+
+train_and_predict <- function(X_train, Y_train, X_test, Y_test, model = 'random_forest', time) {
+  ny <- dim(X_train)[2]
+  #seed
+  nc <- ncol(X_train)
+  
+  if (model == 'random_forest') {
+    vars <- c()
+    for(i in 1:nc) {
+      cn <- paste("Lag", as.character(nc - i + 1), sep="")
+      vars <- c(vars, cn)
+    }
+  
+    X_train_rf <- cbind(X_train, Y_train)
+    outcome <- 'Price'
+    colnames(X_train_rf) <- c(vars, outcome)
+    head(X_train_rf)
+  
+    (fmla <- paste(outcome, "~", paste(vars, collapse = " + ")))
+  
+    set.seed(12345)
+    (model_rf <- ranger(fmla, # formula 
+                      data= data.frame(X_train_rf), # data
+                      num.trees = 500, 
+                      respect.unordered.factors = "order"))
+    print(model_rf)
+  
+    X_test_rf <- cbind(X_test)
+    colnames(X_test_rf) <- c(vars)
+    #head(X_test_rf)
+    X_pred_rf <- predict(model_rf, X_test_rf)$predictions
+    np <- length(X_pred_rf)
+  
+    nt <- length(time)
+    s <- (nt-np + 1)
+    e <- s + np -1
+    t <- time[s:e]
+    length(t)
+  
+    model <- model_rf
+    predict_continuous_rf <- function(model, X_train_orig, nx, ny, vars ) {
+      s <- length(X_train_orig)
+      X_test_new_list <- X_train_orig[[s]]
+      X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+      colnames(X_test_new) <- c(vars)
+    
+      X_pred_cont <- c()
+      for (i in 1:nx) {
+        #print(X_test_new_list)
+        pred = predict(model, X_test_new)$predictions
+        #print(pred)
+        X_pred_cont <- c(X_pred_cont, pred)
+        X_test_new_list <- X_test_new_list[2:ny]
+        X_test_new_list <- c(X_test_new_list, pred)
+        X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
+        colnames(X_test_new) <- c(vars)
+      }
+      return(X_pred_cont) 
+    }
+    nx <- dim(X_test)[1]
+    ny <- dim(X_test)[2]
+    X_pred_cont_rf <- predict_continuous_rf(model_rf, X_train_orig, nx, ny, vars)
+  }
+  
+  res <- list(X_pred_rf = X_pred_rf, X_pred_cont_rf = X_pred_cont_rf)
+  return(res)
 }
 
 # directories

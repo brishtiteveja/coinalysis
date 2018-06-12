@@ -12,6 +12,7 @@ library(dplyr)
 # List all coins
 get_list_of_all_coinmarketcap_coins <- function() {
   url = 'https://coinmarketcap.com/all/views/all/'
+  url = str_to_lower(url)
   url_parsed <- htmlParse(getURL(url), asText = TRUE)
   tableNodes <- getNodeSet(url_parsed, c('//*[@id="currencies-all"]'))
   all_currency <- readHTMLTable(tableNodes[[1]])
@@ -55,6 +56,7 @@ get_currency_data_download_url <- function(currency, history_start, history_end)
 
 
 get_currency_historical_data <- function(url) {
+  url <- str_to_lower(url)
   url_parsed <- htmlParse(getURL(url), asText = TRUE)
   #print(url_parsed)
   tableNodes <- getNodeSet(url_parsed, c('//*[@class="table"]'))

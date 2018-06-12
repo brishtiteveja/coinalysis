@@ -13,9 +13,17 @@ library(quantstrat)
 library(quantmod)
 
 getSymbols('SPY',src='yahoo',return.class='ts')
-SYMB <- xts(SPY, order.by = as.POSIXct(time(SPY)))
+# Not getting any dates in SPY
 
-SYMB <- xts(df[,c('open', 'high', 'low', 'close', 'volume')], order.by = df$close_time)
+library(tidyquant)
+stock_prices <- "SPY" %>%
+  tq_get(get  = "stock.prices",
+         from = "2007-01-01",
+         to   = "2017-01-01")
+
+
+SYMB <- xts(stock_prices[,c('open', 'high', 'low', 'close')], order.by = stock_prices$date)
+
 plot(SYMB)
 plot(index(SYMB),SYMB$close, t='l')
 
@@ -34,7 +42,6 @@ plot_ohlc <- function(SYMB, wd=2) {
 binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
 csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
 
-library(xts)
 df <- read.table(paste(binance_data_dir, csv_data_file, sep="/"), 
                    header = TRUE, sep=",", row.names = NULL, stringsAsFactors = FALSE)
 colnames(df) <- c('time', 'close', 'high', 'low', 'open')
@@ -42,9 +49,6 @@ SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 
 SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
 plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
-
-# Load the quantstrat package
-library(quantstrat)
 
 # Create initdate, from, and to strings
 initdate <- "2018-06-04"
@@ -263,6 +267,7 @@ df$low <- as.numeric(unlist(OHLC(SYMB)$low))
 df$close <- as.numeric(unlist(OHLC(SYMB)$close))
 df$date <- as.POSIXct(rownames(df))
 
+
 # plot ichimoku cloud
 plot_ichimoku(df)
 
@@ -277,8 +282,13 @@ SYMB <- SYMB["2018-05-20 21:22:00/2018-06-04 21:22:00"]
 # Plot the closing price of SPY
 plot(Cl(SYMB))
 
+s <- SYMB["2015-08-01/2015-11-01"]
+plot_ly(data.frame(s), type='ohlc')
+plot(DVO(s, navg = 2), col='red')
+
 # Plot the RSI 2
 plot(RSI(Cl(SYMB), n = 2), col='red')
+plot(DVO(SYMB, navg = 2), col='red')
 
 # What kind of indicator?
 "reversion"

@@ -1,46 +1,49 @@
 library(binancer)
-source('../binance/Config.R')
-
-t <- 'BTCUSDT'
-
-tm <- '1m'
-tkr <- binance_klines(t, interval=tm)
-df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
-
 library(plotly)
 library(ranger)
+library(data.table)
+library(dplyr)
 
+source('../binance/Config.R')
 
+# directories
+binance_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/"
+binance_csv_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinanceCSVData/"
 
-library(plotly)
+t_symb <- 'BTCUSDT'
+
+tm <- '1m'
+tkr <- binance_klines(t_symb, interval=tm)
+df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
 
 timeseries_orig <- c()
 time <- c()
 old_df <- data.frame()
 
-library(data.table)
 clock <- 0
 while(1) {
+  df <- df[,c('close_time', 'close')]
   tmp_df <- rbind(old_df, df)
-  dim(tmp_df)
-  
+  tmp_df <- tmp_df[order(tmp_df$close_time),]
+  print(dim(tmp_df))
+ 
+  # merge the new data frame with the old one 
   df <- unique(tmp_df, by=close_time)
-  dim(df)
+  df <- df[!duplicated(df$close_time),]
+  rownames(df) <- seq(1, dim(df)[1])
+  print(dim(df))
   
-  time = c(as.POSIXct(df$close_time), time)
-  timeseries_orig = c(as.numeric(df$close), timeseries_orig)
+  time = as.POSIXct(df$close_time)
+  timeseries_orig = as.numeric(df$close)
   
   timeseries = timeseries_orig #[1:as.integer(tL* 0.80)]
   
-  #time = dfp$close_time
-  par(mfrow=c(1,1))
-  plot(time, timeseries, t='l')
-  
+  # processing time series
   TRAIN_SIZE = (30/5)*2
   TARGET_TIME = 1
   LAG_SIZE = 1
   
-  res <- process_time_series_data(TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE, percentage = 0.97)
+  res <- process_time_series_data(timeseries, TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE, percentage = 0.97)
   X_train <- res$X_train
   X_train_orig <- res$X_train_orig
   X_test <- res$X_test
@@ -53,89 +56,72 @@ while(1) {
   Y_train <- matrix(as.numeric(unlist(Y_train)), ncol=TARGET_TIME, byrow=TRUE)
   Y_test <- matrix(as.numeric(unlist(Y_test)), ncol=TARGET_TIME, byrow=TRUE)
   
-  ny <- dim(X_train)[2]
+  # training model and predicting using random forest
+  # how to handle previous model?
+  resm <- train_and_predict(X_train, Y_train, X_test, Y_test, model = 'random_forest', time)
+  X_pred_rf <- resm$X_pred_rf
+  X_pred_cont_rf <- resm$X_pred_cont_rf
   
-  # Model using random forest
-  #seed
-  nc <- ncol(X_train)
-  vars <- c()
-  for(i in 1:nc) {
-    cn <- paste("Lag", as.character(nc - i + 1), sep="")
-    vars <- c(vars, cn)
-  }
-  
-  X_train_rf <- cbind(X_train, Y_train)
-  outcome <- 'Price'
-  colnames(X_train_rf) <- c(vars, outcome)
-  head(X_train_rf)
-  
-  (fmla <- paste(outcome, "~", paste(vars, collapse = " + ")))
-  
-  set.seed(12345)
-  (model_rf <- ranger(fmla, # formula 
-                      data= data.frame(X_train_rf), # data
-                      num.trees = 500, 
-                      respect.unordered.factors = "order"))
-  model_rf
-  
-  X_test_rf <- cbind(X_test)
-  colnames(X_test_rf) <- c(vars)
-  head(X_test_rf)
-  X_pred_rf <- predict(model_rf, X_test_rf)$predictions
-  np <- length(X_pred_rf)
-  
-  nt <- length(time)
-  s <- (nt-np + 1)
-  e <- s + np -1
-  t <- time[s:e]
-  length(t)
-  
-  model <- model_rf
-  predict_continuous_rf <- function(model, X_train_orig, nx, ny, vars ) {
-    s <- length(X_train_orig)
-    X_test_new_list <- X_train_orig[[s]]
-    X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
-    colnames(X_test_new) <- c(vars)
-    
-    X_pred_cont <- c()
-    for (i in 1:nx) {
-      #print(X_test_new_list)
-      pred = predict(model, X_test_new)$predictions
-      #print(pred)
-      X_pred_cont <- c(X_pred_cont, pred)
-      X_test_new_list <- X_test_new_list[2:ny]
-      X_test_new_list <- c(X_test_new_list, pred)
-      X_test_new <- matrix(unlist(X_test_new_list), nrow=1, ncol=ny)
-      colnames(X_test_new) <- c(vars)
-    }
-    return(X_pred_cont) 
-  }
-  nx <- dim(X_test)[1]
-  ny <- dim(X_test)[2]
-  X_pred_cont_rf <- predict_continuous_rf(model_rf, X_train_orig, nx, ny, vars)
-  
+  # plotting
   #plot_ly(data = data.frame(time=as.POSIXct(time), timeseries=as.numeric(timeseries)),
   #        x = ~time,
   #        y = ~timeseries)
+  par(mfrow=c(1,1))
   
-  lines(t, X_pred_rf, col='red')
-  lines(t, X_pred_cont_rf, col='green')
+  np <- length(X_pred_rf)
+  nt <- length(time)
+  s <- (nt-np + 1)
+  e <- s + np-1
+  t <- time[s:e]
   
+  #plot(time, timeseries, t='l')
+  #lines(t, X_pred_rf, col='red')
+  #lines(t, X_pred_cont_rf, col = 'green')
+  pt1_df <- data.frame(t_full = time, ts = timeseries)
+  pt2_df <- data.frame(t_test = t, X_pred_rf = X_pred_rf, X_pred_cont_rf = X_pred_cont_rf)
+  p = plot_ly(x = time, y = timeseries, type='scatter', mode='lines+markers',
+              marker=list(color='black', size=3), name=t_symb) %>%
+    add_trace(data=pt2_df, x=~t_test, y=~X_pred_rf, 
+              mode='lines+nomarkers', line= list(color='red'), name="pred") %>%
+    add_trace(data=pt2_df, x=~t_test, y=~X_pred_cont_rf,
+              mode='lines+nomarkers', line=list(color='green'), name="cont pred")
+  print(p)
   
   old_df <- df
   
-  print("Waiting for 5 minutes")
+  print("Waiting for 5 minutes for next batch data")
   # Waiting for 5 minutes
-  Sys.sleep(time=300)
+  Sys.sleep(time=120)
   clock <- clock + 300
   
   # Save new data frame every 1 hour
-  if (clock == 3600) {
-     
+  if (clock == 1800) {
+    t_frm1 <- min(df$close_time)
+    t_frm2 <- unlist(strsplit(as.character(t_frm1),split = c(' ')))
+    t_frm3 <- paste(t_frm2[1], t_frm2[2], sep = "_")
+    t_to1 <- max(df$close_time)
+    t_to2 <- unlist(strsplit(as.character(t_to), split = c(' ')))
+    t_to3 <- paste(t_to2[1], t_to2[2], sep = "_")
+    frm_to <- paste(t_frm3, t_to3, sep="_")
+
+    fn <- paste(t_symb, "_", tm, "_", sep = "")
+    output_csv_file <- paste(binance_csv_data_dir, fn, frm_to, ".csv", sep = "")
+    
+    write.table(df, file=output_csv_file, sep = ",", col.names = TRUE, row.names = FALSE) 
+    
+    #dev.off()
   }
   
-  tm <- '1m'
-  tkr <- binance_klines(t, interval=tm)
+  error <- TRUE
+  while(error) {
+    tryCatch({
+      tkr <- binance_klines(t_symb, interval=tm)
+      error <- FALSE
+    },
+      error = function(e) {
+        print(e)
+    })
+  }
   df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
 }
 
