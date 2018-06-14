@@ -29,3 +29,6 @@
 [submodule "R/IKTrading"]
 	path = R/IKTrading
 	url = https://github.com/IlyaKipnis/IKTrading.git
+[submodule "python/python-binance"]
+	path = python/python-binance
+	url = https://github.com/sammchardy/python-binance.git
