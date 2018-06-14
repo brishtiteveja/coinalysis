@@ -12,8 +12,8 @@ coinN <- length(binance_coins)
 cobinhood_credentials(key=API_KEY_COBINHOOD, secret = '')
 cobinhood_ticker_prices <- cobinhood_ticker_all_prices()
 
-#ticker_prices <- binance_ticker_prices
-ticker_prices <- cobinhood_ticker_prices
+ticker_prices <- binance_ticker_prices
+#ticker_prices <- cobinhood_ticker_prices
 
 # BTC Market
 btc_tck_idx <- endsWith(ticker_prices$symbol, "BTC")

@@ -1,31 +1,17 @@
 library(binancer)
-source('../binance/Config.R')
-
-t <- 'BTCUSDT'
-
-tm <- '1m'
-tkr <- binance_klines(t, interval=tm)
-df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
-
 library(xts)
 library(zoo)
 library(quantstrat)
 library(quantmod)
-
-getSymbols('SPY',src='yahoo',return.class='ts')
-# Not getting any dates in SPY
-
+library(TTR)
 library(tidyquant)
-stock_prices <- "SPY" %>%
-  tq_get(get  = "stock.prices",
-         from = "2007-01-01",
-         to   = "2017-01-01")
+library(tidyverse)
+library(timetk)
+library(highcharter)
 
+setwd("~/Documents/projects/crypto/coinalysis/R/binance")
+source('../binance/Config.R')
 
-SYMB <- xts(stock_prices[,c('open', 'high', 'low', 'close')], order.by = stock_prices$date)
-
-plot(SYMB)
-plot(index(SYMB),SYMB$close, t='l')
 
 plot_ohlc <- function(SYMB, wd=2) {
   par(mfrow=c(1,1))
@@ -35,10 +21,62 @@ plot_ohlc <- function(SYMB, wd=2) {
   lines(index(SYMB), SYMB$high, col='red', lwd=wd)
   lines(index(SYMB), SYMB$low, col='pink', lwd=wd)
   legend("topright", legend=c('open', 'close', 'high', 'low'), lty=1, 
-       col=c('black', 'green', 'red', 'pink'), cex=0.75)
+         col=c('black', 'green', 'red', 'pink'), cex=0.75)
 }
 
-# directories
+
+# S&P data
+getSymbols('SPY',src='yahoo',return.class='ts')
+# Not getting any dates in SPY
+
+stock_prices <- "SPY" %>%
+  tq_get(get  = "stock.prices",
+         from = "2007-01-01",
+         to   = "2017-01-01")
+
+
+SYMB <- xts(stock_prices[,c('open', 'high', 'low', 'close')], order.by = stock_prices$date)
+plot(SYMB)
+plot(index(SYMB),SYMB$close, t='l')
+
+# bitcoin from quandl
+bitcoin_quandl <- tribble(
+  ~code,          ~symbol,
+  "BCHARTS/LOCALBTCEUR", "LOCALBTCEUR"
+)
+
+bitcoin_quandl %>% tq_get(get = "quandl") %>% 
+      select(date, open, high, low, close) -> BTC_SYMB
+
+df <- data.frame(BTC_SYMB)
+head(df)
+SYMB <- xts(df[,2:5], order.by = df$date)
+SYMB <- SYMB["2017-05-31/2017-12-31"]
+plot(index(SYMB), rowMeans(HLC(SYMB)), t='l')
+plot(Cl(SYMB))
+
+# Daily bitcoin returns, just using lagging
+bitcoin_quandl %>% tq_get(get='quandl') %>%
+  select(date, close) %>%
+  mutate(lag = lag(close), returns = (log(close) - log(lag(close))))%>%
+  replace_na(list(returns = 0)) %>%
+  mutate_at(vars(3), funs(ifelse(!is.finite(.), 0, .))) %>% 
+  tk_xts() -> bitcoin_return
+
+highchart(type = "stock") %>% 
+  hc_title(text = "BitCoin Daily Returns/Prices") %>%
+  hc_yAxis_multiples(
+    list(lineWidth = 3),
+    list(showLastLabel = FALSE, opposite = TRUE)) %>% 
+  hc_add_series(bitcoin_return$close, 
+                name = names(bitcoin_return$close)) %>%
+  hc_add_series(bitcoin_return$returns,
+                name = names(bitcoin_return$returns), yAxis = 1) %>% 
+  hc_add_theme(hc_theme_flat()) %>%
+  hc_navigator(enabled = FALSE) %>% 
+  hc_scrollbar(enabled = FALSE)
+
+# get 1m downloaded data for 3 months
 binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
 csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
 
@@ -49,6 +87,58 @@ SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 
 SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
 plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
+
+
+
+# Binance ticker data collection
+t <- 'BTCUSDT'
+tm <- '15m'
+tkr <- binance_klines(t, interval=tm)
+df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
+BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$close_time))
+plot_ohlc(BTC_SYMB)
+SYMB <- BTC_SYMB
+
+# Visualize technical indicators
+SYMB <- BTC_SYMB["2014-05-01/2018-06-14"]
+chartSeries(SYMB, type="bars")
+
+# RSI: Relative Strength Index
+rsi <- RSI(rowMeans(HLC(SYMB)), n = 7)
+addRSI(n=14)
+
+# MACD: Moving Average Convergence Divergence
+macd <- MACD(rowMeans(HLC(SYMB)))
+addMACD()
+
+# CCI : Commodity Channel Index
+addCCI()
+
+# Bolinger bands
+addBBands()
+bb <- BBands(HLC(SYMB))
+
+# chaikin volatility
+ad <- chaikinAD(df[,c("high","low","close")], df[,"volume"])
+addTA(ta = ad, col='red')
+plot(ad, t='l')
+addChAD()
+
+# chaikin money flow
+cmf <- CMF(df[,c("high","low","close")], df[,"volume"])
+cmfts <- xts(cmf, order.by = index(SYMB))
+addTA(cmfts)
+
+# Chaikin Accumulation / Distribution (AD) line
+chaikAD <- chaikinAD(df[,c("high","low","close")], df[,"volume"])
+chaikADts <- xts(chaikAD, order.by = index(SYMB))
+# chaikin volatility
+addTA(chaikADts, col = 'red')
+
+# Chaikin Volatility
+chaikVol <- chaikinVolatility(df[,c("high","low","close")], df[,"volume"])
+chaikVolts <- xts(chainVol, order.by = index(SYMB))
+addTA(chaikVolts)
 
 # Create initdate, from, and to strings
 initdate <- "2018-06-04"
@@ -535,4 +625,13 @@ instrets <- PortfReturns(portfolio.st)
 # Compute Sharpe ratio from returns
 SharpeRatio.annualized(instrets, geometric = FALSE)
 
+
+library(binancer)
+setwd("~/Documents/projects/crypto/coinalysis/R/binance")
+source('config.R')
+
+# Set binance credentials
+binance_credentials(key=API_KEY_BINANCE, secret = SECRET_BINANCE)
+binance_coins <- binance_coins()
+binance_ticker_prices <- binance_ticker_all_prices()
 

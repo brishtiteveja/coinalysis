@@ -55,6 +55,7 @@ get_currency_data_download_url <- function(currency, history_start, history_end)
   url_e <- paste(url_e, history_end, sep="")
 
   url <- url_e
+  url <- str_to_lower(url)
 }
 
 
@@ -180,3 +181,4 @@ selectorOptions <- list(
   ))
 )
 chart_type = 'candlestick' # 'ohlc'
+
