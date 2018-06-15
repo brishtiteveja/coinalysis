@@ -24,7 +24,6 @@ plot_ohlc <- function(SYMB, wd=2) {
          col=c('black', 'green', 'red', 'pink'), cex=0.75)
 }
 
-
 # S&P data
 getSymbols('SPY',src='yahoo',return.class='ts')
 # Not getting any dates in SPY
@@ -88,8 +87,6 @@ SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
 plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
 
-
-
 # Binance ticker data collection
 t <- 'BTCUSDT'
 tm <- '15m'
@@ -100,7 +97,7 @@ plot_ohlc(BTC_SYMB)
 SYMB <- BTC_SYMB
 
 # Visualize technical indicators
-SYMB <- BTC_SYMB["2014-05-01/2018-06-14"]
+SYMB <- BTC_SYMB["2018-06-13/2018-06-14"]
 chartSeries(SYMB, type="bars")
 
 # RSI: Relative Strength Index
@@ -117,6 +114,11 @@ addCCI()
 # Bolinger bands
 addBBands()
 bb <- BBands(HLC(SYMB))
+
+# DVO ta
+dvo <- DVO(HLC(SYMB))
+dvots <- xts(dvo, order.by = index(SYMB))
+addTA(dvots, col=6, lty=1, lwd=2)
 
 # chaikin volatility
 ad <- chaikinAD(df[,c("high","low","close")], df[,"volume"])
@@ -295,8 +297,6 @@ ichimoku <- function(HLC, nFast=9, nMed=26, nSlow=52) {
   return (out)
 }
 
-
-
 # Set the ichimoku parameters
 plot(HLC(SYMB), legend.loc = 'bottomleft', cex=0.4)
 require(quantmod)
@@ -356,7 +356,6 @@ df$high <- as.numeric(unlist(OHLC(SYMB)$high))
 df$low <- as.numeric(unlist(OHLC(SYMB)$low))
 df$close <- as.numeric(unlist(OHLC(SYMB)$close))
 df$date <- as.POSIXct(rownames(df))
-
 
 # plot ichimoku cloud
 plot_ichimoku(df)
