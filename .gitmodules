@@ -32,3 +32,6 @@
 [submodule "python/python-binance"]
 	path = python/python-binance
 	url = https://github.com/sammchardy/python-binance.git
+[submodule "python/gdax-python"]
+	path = python/gdax-python
+	url = https://github.com/danpaquin/gdax-python.git

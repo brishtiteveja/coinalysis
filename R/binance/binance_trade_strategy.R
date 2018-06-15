@@ -12,7 +12,6 @@ library(highcharter)
 setwd("~/Documents/projects/crypto/coinalysis/R/binance")
 source('../binance/Config.R')
 
-
 plot_ohlc <- function(SYMB, wd=2) {
   par(mfrow=c(1,1))
   plot.new()
@@ -86,6 +85,14 @@ SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 
 SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
 plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
+
+# Gdax bitcoin price data
+gdax_btc_price_fn <- '/Users/andy/Documents/projects/crypto/coinalysis/python/btc_usd_gdax_price.csv'
+df <- read.table(gdax_btc_price_fn, sep=',', header = TRUE)
+head(df)
+BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
+#plot(BTC_SYMB)
+SYMB <- BTC_SYMB
 
 # Binance ticker data collection
 t <- 'BTCUSDT'
