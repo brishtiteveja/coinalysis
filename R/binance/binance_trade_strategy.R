@@ -2,6 +2,7 @@ library(binancer)
 library(xts)
 library(zoo)
 library(quantstrat)
+# tutorial : http://www.r-programming.org/papers
 library(quantmod)
 library(TTR)
 library(tidyquant)
@@ -76,35 +77,66 @@ highchart(type = "stock") %>%
 
 # get 1m downloaded data for 3 months
 binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
-csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
+csv_data_file <- "BTCUSDT_5m_from_2018-3-1_to_2018-6-14.csv"
 
 df <- read.table(paste(binance_data_dir, csv_data_file, sep="/"), 
                    header = TRUE, sep=",", row.names = NULL, stringsAsFactors = FALSE)
 colnames(df) <- c('time', 'close', 'high', 'low', 'open')
-SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
+BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 
-SYMB <- SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"]
-plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
+SYMB <- BTC_SYMB
+SYMB <- BTC_SYMB["2018-03-20 09:00:00/2018-03-20 20:00:00"]
+#plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
+chartSeries(SYMB, type='bars')
+
+# with plotly
+df <- data.frame(SYMB)
+rownames(df) <- 1:dim(df)[1]
+df$time <- as.POSIXct(index(SYMB))
+head(df)
+p <- df %>%
+  plot_ly(x = ~time, type="ohlc",
+          open = ~open, close = ~close,
+          high = ~high, low = ~low) %>%
+  layout(title = "BTC-USD OHLC Chart",
+       xaxis = list(rangeslider = list(visible = F)))
+p
+
+# with high chart
+highchart(type='stock') %>% 
+  hc_title(text = "BTC-USD Price") %>%
+  hc_yAxis_multiples(
+    list(lineWidth = 3),
+    list(showLastLabel = FALSE, opposite = TRUE)) %>% 
+  hc_add_series(df, 
+                type='candlestick') %>%
+  hc_add_theme(hc_theme_flat()) %>%
+  hc_navigator(enabled = FALSE) %>% 
+  hc_scrollbar(enabled = FALSE)
 
 # Gdax bitcoin price data
 gdax_btc_price_fn <- '/Users/andy/Documents/projects/crypto/coinalysis/python/btc_usd_gdax_price.csv'
 df <- read.table(gdax_btc_price_fn, sep=',', header = TRUE)
+tz <- Sys.timezone()
+df$time <- as.POSIXct(df$time, tz='US/Central')
 head(df)
-BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
-#plot(BTC_SYMB)
+BTC_SYMB <- xts(df[,2:5], order.by = df$time)
+plot(BTC_SYMB)
 SYMB <- BTC_SYMB
 
 # Binance ticker data collection
 t <- 'BTCUSDT'
-tm <- '15m'
+tm <- '1d'
 tkr <- binance_klines(t, interval=tm)
-df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume')], stringsAsFactors = FALSE)
-BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$close_time))
+df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume', 
+                        'quote_asset_volume', 'trades', 'taker_buy_base_asset_volume',
+                        'taker_buy_quote_asset_volume')], stringsAsFactors = FALSE)
+BTC_SYMB <- xts(df[,2:10], order.by = as.POSIXct(df$close_time))
 plot_ohlc(BTC_SYMB)
 SYMB <- BTC_SYMB
 
 # Visualize technical indicators
-SYMB <- BTC_SYMB["2018-06-13/2018-06-14"]
+SYMB <- BTC_SYMB["2018-06-18/2018-06-19"]
 chartSeries(SYMB, type="bars")
 
 # RSI: Relative Strength Index
@@ -129,13 +161,14 @@ addTA(dvots, col=6, lty=1, lwd=2)
 
 # chaikin volatility
 ad <- chaikinAD(df[,c("high","low","close")], df[,"volume"])
+adts <- xts(ad, order.by = df$close_time)
 addTA(ta = ad, col='red')
 plot(ad, t='l')
 addChAD()
 
 # chaikin money flow
 cmf <- CMF(df[,c("high","low","close")], df[,"volume"])
-cmfts <- xts(cmf, order.by = index(SYMB))
+cmfts <- xts(cmf, order.by = df$close_time)
 addTA(cmfts)
 
 # Chaikin Accumulation / Distribution (AD) line
@@ -146,7 +179,7 @@ addTA(chaikADts, col = 'red')
 
 # Chaikin Volatility
 chaikVol <- chaikinVolatility(df[,c("high","low","close")], df[,"volume"])
-chaikVolts <- xts(chainVol, order.by = index(SYMB))
+chaikVolts <- xts(chaikVol, order.by = index(SYMB))
 addTA(chaikVolts)
 
 # Create initdate, from, and to strings
@@ -302,6 +335,29 @@ ichimoku <- function(HLC, nFast=9, nMed=26, nSlow=52) {
   out <- cbind(turnLine=turningLine, baseLine=baseLine, spanA=spanA, spanB=spanB, plotSpan=plotSpan, laggingSpan=laggingSpan, lagSpanA, lagSpanB)
   colnames(out) <- c("turnLine", "baseLine", "spanA", "spanB", "plotLagSpan", "laggingSpan", "lagSpanA","lagSpanB")
   return (out)
+}
+
+getLastHighestSupport <- function(x) {
+  support <- getSupport(x)
+  ns <- dim(support)[1]
+  
+  resi <- rep(0, ns)
+  resv <- rep(0, ns)
+  
+  maxv <- -Inf
+  maxi <- -Inf
+  for(i in 1:ns) {
+    if (support$val[i] > maxv) {
+      maxi <- support$id[i]
+      maxv <- support$val[i]
+    }
+    resi[i] <- maxi
+    resv[i] <- maxv
+  }
+  
+  lhs <- data.frame(id=resi, val=resv)
+  
+  return(lhs)
 }
 
 # Set the ichimoku parameters
@@ -630,14 +686,4 @@ instrets <- PortfReturns(portfolio.st)
 
 # Compute Sharpe ratio from returns
 SharpeRatio.annualized(instrets, geometric = FALSE)
-
-
-library(binancer)
-setwd("~/Documents/projects/crypto/coinalysis/R/binance")
-source('config.R')
-
-# Set binance credentials
-binance_credentials(key=API_KEY_BINANCE, secret = SECRET_BINANCE)
-binance_coins <- binance_coins()
-binance_ticker_prices <- binance_ticker_all_prices()
 
