@@ -41,16 +41,17 @@ plot(index(SYMB),SYMB$close, t='l')
 # bitcoin from quandl
 bitcoin_quandl <- tribble(
   ~code,          ~symbol,
-  "BCHARTS/LOCALBTCEUR", "LOCALBTCEUR"
+  "BCHARTS/COINBASEBTC", "COINBASEBTC"
 )
 
 bitcoin_quandl %>% tq_get(get = "quandl") %>% 
       select(date, open, high, low, close) -> BTC_SYMB
 
 df <- data.frame(BTC_SYMB)
-head(df)
+tail(df)
+SYMB <- BTC_SYMB
 SYMB <- xts(df[,2:5], order.by = df$date)
-SYMB <- SYMB["2017-05-31/2017-12-31"]
+#SYMB <- SYMB["2017-05-31/2017-12-31"]
 plot(index(SYMB), rowMeans(HLC(SYMB)), t='l')
 plot(Cl(SYMB))
 
@@ -126,7 +127,7 @@ SYMB <- BTC_SYMB
 
 # Binance ticker data collection
 t <- 'BTCUSDT'
-tm <- '1d'
+tm <- '15m'
 tkr <- binance_klines(t, interval=tm)
 df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume', 
                         'quote_asset_volume', 'trades', 'taker_buy_base_asset_volume',
@@ -136,7 +137,7 @@ plot_ohlc(BTC_SYMB)
 SYMB <- BTC_SYMB
 
 # Visualize technical indicators
-SYMB <- BTC_SYMB["2018-06-18/2018-06-19"]
+SYMB <- BTC_SYMB["2018-06-18/2018-07-19"]
 chartSeries(SYMB, type="bars")
 
 # RSI: Relative Strength Index

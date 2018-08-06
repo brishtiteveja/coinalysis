@@ -1,9 +1,17 @@
-library(binancer)
+detach('package:quantstrat')
+detach('package:quantmod')
+detach('package:xts')
+detach('package:zoo')
+rm(.blotter)
+if (!exists('.blotter')) 
+  .blotter <- new.env() 
+
 library(xts)
 library(zoo)
 library(quantstrat)
-# tutorial : http://www.r-programming.org/papers
 library(quantmod)
+
+library(binancer)
 library(TTR)
 library(tidyquant)
 library(tidyverse)
@@ -17,8 +25,8 @@ source('../binance/Config.R')
 t <- 'BTCUSDT'
 
 tm_list <- c("5m", "15m", "1h","6h", "12h", "1d") # "3d", "1w", "1M")
-tm <- '1d'
-tm_list <- '1d'
+tm <- '5m'
+#tm_list <- '1d'
 
 SMA_12 <- list()
 SMA_26 <- list()
@@ -31,7 +39,7 @@ SYMBL <- list()
 for(tm in tm_list) {
   print(paste("Processing for interval ", tm))
   tkr <- binance_klines(t, interval=tm)
-  df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume', 
+  df <- data.frame(tkr[,c('close_time', 'open', 'high', 'low', 'close', 'volume',  
                           'quote_asset_volume', 'trades', 'taker_buy_base_asset_volume',
                           'taker_buy_quote_asset_volume')], stringsAsFactors = FALSE)
   SYMB <- xts(df[,2:10], order.by = as.POSIXct(df$close_time))
@@ -60,7 +68,7 @@ for(tm in tm_list) {
   Sys.sleep(5)
 }
 
-
+tm <- '5m'
 SYMB <- SYMBL[[tm]]
 
 # Define the names of your strategy, portfolio and account
@@ -96,6 +104,8 @@ initPortf(portfolio.st, symbols = "SYMB", initDate = initdate,
           currency = curr)
 
 # Initialize the orders
+if(!exists('.strategy'))
+  .strategy <- new.env()
 initOrders(portfolio.st, initDate = initdate)
 
 # Store the strategy
@@ -159,11 +169,10 @@ add.indicator(strategy = strategy.st,
               arguments = list(HLC = quote(HLC(mktdata))),
               label = "DVO")
 
+ind_state <- applyIndicators(strategy = strategy.st, mktdata = SYMB)
 
 strat <- getStrategy(strategy.st)
 summary(strat)
-
-ind_state <- applyIndicators(strategy = strategy.st, mktdata = SYMB)
 
 add.signal(strategy.st, name = "sigComparison",
            # We are interested in the relationship between the SMA12 and the SMA26
