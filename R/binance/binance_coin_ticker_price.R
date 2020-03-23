@@ -1,4 +1,5 @@
 library(binancer)
+setwd('/Users/andy/Documents/projects/crypto/coinalysis/R/binance')
 source('config.R')
 
 mnts <- function(u) {

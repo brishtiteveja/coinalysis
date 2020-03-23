@@ -31,7 +31,7 @@ getSymbols('SPY',src='yahoo',return.class='ts')
 stock_prices <- "SPY" %>%
   tq_get(get  = "stock.prices",
          from = "2007-01-01",
-         to   = "2017-01-01")
+         to   = "2019-10-01")
 
 
 SYMB <- xts(stock_prices[,c('open', 'high', 'low', 'close')], order.by = stock_prices$date)
@@ -86,7 +86,7 @@ colnames(df) <- c('time', 'close', 'high', 'low', 'open')
 BTC_SYMB <- xts(df[,2:5], order.by = as.POSIXct(df$time))
 
 SYMB <- BTC_SYMB
-SYMB <- BTC_SYMB["2018-03-20 09:00:00/2018-03-20 20:00:00"]
+SYMB <- BTC_SYMB["2018-03-20 09:00:00/2018-03-22 20:00:00"]
 #plot_ohlc(SYMB["2018-05-22 21:22:00/2018-05-29 21:22:00"], wd=2)
 chartSeries(SYMB, type='bars')
 
@@ -95,6 +95,7 @@ df <- data.frame(SYMB)
 rownames(df) <- 1:dim(df)[1]
 df$time <- as.POSIXct(index(SYMB))
 head(df)
+library(plotly)
 p <- df %>%
   plot_ly(x = ~time, type="ohlc",
           open = ~open, close = ~close,
@@ -184,8 +185,8 @@ chaikVolts <- xts(chaikVol, order.by = index(SYMB))
 addTA(chaikVolts)
 
 # Create initdate, from, and to strings
-initdate <- "2018-06-04"
-from <- "2018-06-04"
+initdate <- "2018-12-24"
+from <- "2018-12-24"
 to <- "2019-06-30"
 
 # Set the timezone to UTC

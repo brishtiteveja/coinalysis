@@ -1,6 +1,8 @@
 library(binancer)
 source('../binance/config.R')
 
+Sys.setenv(http_proxy="http://staff-proxy.ul.ie:8080")
+
 # Authenticate with Binance credentials
 binance_credentials(API_KEY_BINANCE, secret = SECRET_BINANCE)
 

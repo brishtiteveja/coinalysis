@@ -85,14 +85,16 @@ shuffle_in_unison<- function(a, b) {
   return(res)
 }
 
-crete_Xt_Yt <- function(X, y, percentage = 0.65) {
+crete_Xt_Yt <- function(X, y, percentage = 0.65, shuffle=TRUE) {
   idx = as.integer(length(X) * percentage)
   X_train = X_train_orig = X[1:idx]
   Y_train = Y_train_orig = y[1:idx]
   
-  sres = shuffle_in_unison(X_train, Y_train)
-  X_train = sres$X
-  Y_train = sres$Y
+  if (shuffle) {
+    sres = shuffle_in_unison(X_train, Y_train)
+    X_train = sres$X
+    Y_train = sres$Y
+  }
   
   N <- length(X)
   X_test = X[(idx+1):N]
@@ -109,7 +111,7 @@ process_time_series_data <- function(timeseries, train_size, target_time, lag_si
   X <- X_Y$X
   Y <- X_Y$Y
   
-  res <- crete_Xt_Yt(X, Y, percentage = percentage)
+  res <- crete_Xt_Yt(X, Y, percentage = percentage, shuffle = FALSE)
 
   return(res)  
 }
@@ -185,7 +187,7 @@ train_and_predict <- function(X_train, Y_train, X_test, Y_test, model = 'random_
 binance_dir <- "~/Documents/projects/crypto/coinalysis/R/binance"
 binance_data_dir <- "~/Documents/projects/crypto/coinalysis/R/binance/BinancePickleData"
 
-rda_file <- 'Binance_tickers_all_1m_2018-05-25.Rda'
+rda_file <- 'Binance_tickers_all_1d_2018-11-18.Rda'
 csv_data_file <- "BTCUSDT_1m_from_2018-2-22_to_2018-5-31.csv"
 
 setwd(binance_dir)
@@ -210,6 +212,9 @@ process_csv_data <- function() {
 
 ts <- process_csv_data()
 
+# Check with climate timeseries data
+ts = data.frame(time=eva, timeseries=ev)
+
 timeseries_orig = ts$timeseries #* 100000000
 time = ts$time
 #tL <- length(timeseries_orig)
@@ -220,11 +225,14 @@ timeseries = timeseries_orig #[1:as.integer(tL* 0.80)]
 par(mfrow=c(1,1))
 plot(time, timeseries, t='l')
 
-TRAIN_SIZE = (30/5)*2
+# for binance data
+TRAIN_SIZE =  (30/5)*2
+# for climate data
+#TRAIN_SIZE = 2
 TARGET_TIME = 1
 LAG_SIZE = 1
 
-res <- process_time_series_data(TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE, percentage = 0.97)
+res <- process_time_series_data(timeseries, TRAIN_SIZE, TARGET_TIME, LAG_SIZE, scale = TRUE, percentage = 0.97)
 X_train <- res$X_train
 X_train_orig <- res$X_train_orig
 X_test <- res$X_test
@@ -268,7 +276,7 @@ for(i in 1:nc) {
 }
 
 X_train_rf <- cbind(X_train, Y_train)
-outcome <- 'Price'
+outcome <- 'Outcome'
 colnames(X_train_rf) <- c(vars, outcome)
 head(X_train_rf)
 
@@ -281,6 +289,22 @@ set.seed(12345)
                     num.trees = 500, 
                     respect.unordered.factors = "order"))
 model_rf
+
+# check model accuracy
+X_valid_rf <- matrix(unlist(X_train_orig), 
+                  nrow = length(X_train_orig), 
+                  ncol = length(X_train_orig[[1]]),
+                  byrow = TRUE)
+X_valid_rf <- cbind(X_valid_rf, unlist(Y_train_orig))
+colnames(X_valid_rf) <- c(vars, outcome)
+head(X_valid_rf)
+Y_valid <- predict(model_rf, X_valid_rf)
+
+yt <- unlist(Y_train_orig)
+xt <- time[1:length(yt)]
+plot_ly(data=data.frame(time=xt, timeseries=yt)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=xt,y=Y_valid$predictions)
 
 X_test_rf <- cbind(X_test)
 colnames(X_test_rf) <- c(vars)
@@ -322,8 +346,14 @@ plot(time, timeseries, t='l')
 lines(t, X_pred_rf, col='red')
 lines(t, X_pred_cont_rf, col='green')
 
-plot(tail(time), tail(timeseries), t='l')
+lines(tail(time), tail(timeseries), t='l')
 lines(t, X_pred_rf, col='red')
+
+library(plotly)
+plot_ly(data=data.frame(time=time, price=timeseries)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=t, y=X_pred_rf) %>%
+  add_lines(x=t,y=X_pred_cont_rf)
 
 
 # Using GLM: quassipoisson
@@ -341,6 +371,24 @@ model.glm <- glm(fmla.glm, data=data.frame(X_train_rf), family=gaussian)
 model.glm
 model.glm2 <- glm(fmla.glm, data=data.frame(X_train_rf), family=quasipoisson)
 model.glm2
+
+# Check model accuracy with the train data
+X_valid_rf <- matrix(unlist(X_train_orig), 
+                     nrow = length(X_train_orig), 
+                     ncol = length(X_train_orig[[1]]),
+                     byrow = TRUE)
+X_valid_rf <- cbind(X_valid_rf, unlist(Y_train_orig))
+colnames(X_valid_rf) <- c(vars, outcome)
+head(X_valid_rf)
+Y_valid1 <- predict(model.glm, data.frame(X_valid_rf))
+Y_valid2 <- predict(model.glm2, data.frame(X_valid_rf))
+
+yt <- unlist(Y_train_orig)
+xt <- time[1:length(yt)]
+plot_ly(data=data.frame(time=xt, timeseries=yt)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=~time,y=Y_valid1) %>%
+  add_lines(x=xt,y=Y_valid2)
 
 X_pred_glm <- predict(model.glm, data.frame(X_test_rf))
 X_pred_glm2 <- predict(model.glm2, data.frame(X_test_rf))
@@ -368,6 +416,18 @@ fmla.gam <- as.formula(fmla)
 library(mgcv)
 model.gam <- gam(fmla.gam, data=data.frame(X_train_rf), family=gaussian)
 model.gam
+
+# check model accuracy
+head(X_valid_rf)
+Y_valid_rf <- predict(model_rf, data.frame(X_valid_rf))
+Y_valid_gam <- predict(model.gam, data.frame(X_valid_rf))
+
+yt <- unlist(Y_train_orig)
+xt <- time[1:length(yt)]
+plot_ly(data=data.frame(time=xt, timeseries=yt)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=xt,y=Y_valid_rf$predictions) %>%
+  add_lines(x=xt,y=Y_valid_gam)
 
 X_pred_gam <- predict(model.gam, data.frame(X_test_rf))
 np <- length(X_pred_gam)
@@ -412,6 +472,16 @@ model_xgb <- xgboost(data = X_train, # training data as matrix
                      depth = 6,
                      verbose = 0  # silent
 )
+
+Y_valid_xgb <- predict(model_xgb, X_train)
+
+# check model accuracy
+yt <- unlist(Y_train_orig)
+xt <- time[1:length(yt)]
+plot_ly(data=data.frame(time=xt, timeseries=yt)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=xt,y=Y_valid_xgb) %>%
+  add_lines(x=xt,y=Y_valid_rf$predictions)
 
 X_pred_xgb <- predict(model_xgb, X_test)
 
@@ -485,12 +555,20 @@ model %>%
   fit(
     x, y,
     batch_size = 10,
-    epochs = 20,
+    epochs = 1000,
     verbose = 2,
     callbacks = print_callback
   )
 
+# check model accuracy
+Y_valid_lstm <- model %>% predict(x)
+plot_ly(data=data.frame(time=xt, timeseries=yt)) %>%
+  add_lines(x=~time, y=~timeseries) %>%
+  add_lines(x=xt,  y=Y_valid_lstm[,1])%>%
+  add_lines(x=xt,y=Y_valid_xgb) %>%
+  add_lines(x=xt,y=Y_valid_rf$predictions)
   
+
 x_test <- array(0, dim = c(nrow(X_test), 1, ncol(X_test)))
 y_test <- array(0, dim = c(nrow(Y_test), ncol(Y_test)))
 for(i in 1:nrow(X_test)){
