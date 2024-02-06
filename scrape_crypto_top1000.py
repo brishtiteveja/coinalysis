@@ -9,9 +9,11 @@ import time
 from datetime import datetime
 from pymongo import MongoClient
 import traceback
+import schedule
 
 def initialize_driver():
     firefox_options = Options()
+    firefox_options.add_argument("--headless")
     firefox_options.add_argument("--no-sandbox")
     firefox_options.add_argument("--disable-dev-shm-usage")
     driver = webdriver.Firefox(options=firefox_options)
@@ -151,13 +153,13 @@ def run_scraping_process():
         driver.quit()
 
 
-def main2():
-    schedule.every(6).hours.do(run_scraping_process)
+def main():
+    schedule.every(24).hours.do(run_scraping_process)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-def main():
+def main2():
     run_scraping_process()
 
 if __name__ == "__main__":
